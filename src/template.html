@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TSMorphGraph</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Toolbar ─────────────────────────────────────────────────── */
+
+    #toolbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: #161b22; border-bottom: 1px solid #30363d;
+      padding: 0 16px; display: flex; align-items: center; gap: 14px;
+      height: 44px; font-size: 13px;
+    }
+    #toolbar .title { font-weight: 700; font-size: 15px; color: #f0f6fc; white-space: nowrap; }
+
+    /* ── Branch selectors ────────────────────────────────────────── */
+
+    .branch-selector-group {
+      display: flex; align-items: center; gap: 4px; white-space: nowrap;
+    }
+    .branch-selector-label {
+      font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .branch-select {
+      background: #0d1117; border: 1px solid #30363d; border-radius: 5px;
+      color: #58a6ff; font-family: 'SF Mono', Consolas, monospace; font-size: 11px;
+      padding: 2px 6px; outline: none; cursor: pointer;
+      max-width: 180px; text-overflow: ellipsis;
+    }
+    .branch-select:focus { border-color: #58a6ff; }
+    .branch-select:disabled { opacity: 0.5; cursor: default; }
+    .branch-dots { color: #484f58; font-size: 12px; margin: 0 2px; }
+    .branch-reload-btn {
+      background: #1f6feb; border: none; border-radius: 5px;
+      color: #fff; font-size: 11px; padding: 3px 10px; cursor: pointer;
+      font-weight: 600; white-space: nowrap; display: none;
+    }
+    .branch-reload-btn:hover { background: #388bfd; }
+    .branch-reload-btn:disabled { opacity: 0.5; cursor: wait; }
+    .branch-reload-btn.visible { display: inline-block; }
+
+    #toolbar .badge {
+      background: #30363d; padding: 2px 8px; border-radius: 10px; font-size: 11px;
+      white-space: nowrap;
+    }
+    #toolbar .stats { font-size: 12px; white-space: nowrap; }
+    #toolbar .add { color: #3fb950; }
+    #toolbar .del { color: #f85149; }
+    #toolbar .right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+
+    /* ── Search ──────────────────────────────────────────────────── */
+
+    #search-container {
+      position: relative; display: flex; align-items: center;
+    }
+    #search-input {
+      background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+      color: #c9d1d9; font-size: 12px; padding: 4px 8px 4px 26px;
+      width: 200px; outline: none; font-family: inherit;
+    }
+    #search-input:focus { border-color: #58a6ff; }
+    #search-input::placeholder { color: #484f58; }
+    #search-icon {
+      position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+      color: #484f58; font-size: 12px; pointer-events: none;
+    }
+    #search-kbd {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      font-size: 9px; color: #484f58; background: #21262d; border: 1px solid #30363d;
+      border-radius: 3px; padding: 0 4px; line-height: 16px;
+      font-family: 'SF Mono', Consolas, monospace; pointer-events: none;
+    }
+    #search-results {
+      position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;
+      background: #1c2128; border: 1px solid #30363d; border-radius: 8px;
+      display: none; max-height: 320px; overflow-y: auto; z-index: 300;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .search-item {
+      padding: 8px 12px; cursor: pointer; font-size: 12px;
+      border-bottom: 1px solid #21262d;
+    }
+    .search-item:last-child { border-bottom: none; }
+    .search-item:hover, .search-item.active { background: #30363d; }
+    .search-item-name { color: #f0f6fc; font-weight: 600; }
+    .search-item-path { color: #8b949e; font-size: 11px; font-family: monospace; }
+    .search-item-badge {
+      display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 4px;
+      margin-left: 6px; vertical-align: middle;
+    }
+
+    /* ── Filter bar ──────────────────────────────────────────────── */
+
+    #filter-bar {
+      position: fixed; top: 44px; left: 0; right: 0; z-index: 99;
+      background: #161b22ee; border-bottom: 1px solid #30363d;
+      padding: 6px 16px; display: flex; align-items: center; gap: 10px;
+      font-size: 11px; backdrop-filter: blur(8px);
+    }
+
+    /* ── Filter dropdown ─────────────────────────────────────────── */
+
+    .filter-dropdown {
+      position: relative; display: inline-block;
+    }
+    .filter-trigger {
+      background: #21262d; border: 1px solid #30363d; border-radius: 6px;
+      padding: 4px 10px; cursor: pointer; color: #c9d1d9; font-size: 12px;
+      user-select: none; display: flex; align-items: center; gap: 6px;
+      white-space: nowrap;
+    }
+    .filter-trigger:hover { border-color: #484f58; }
+    .filter-trigger.open { border-color: #58a6ff; }
+    .filter-trigger-label { color: #8b949e; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-trigger-count {
+      background: #0d419d55; color: #58a6ff; font-size: 10px; padding: 0 5px;
+      border-radius: 8px; min-width: 18px; text-align: center; line-height: 16px;
+    }
+    .filter-trigger-arrow { color: #484f58; font-size: 10px; margin-left: 2px; }
+    .filter-panel {
+      position: absolute; top: calc(100% + 4px); left: 0;
+      background: #1c2128; border: 1px solid #30363d; border-radius: 8px;
+      min-width: 220px; max-height: 320px; display: none; z-index: 300;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5); flex-direction: column;
+    }
+    .filter-panel.open { display: flex; }
+    .filter-panel-search {
+      padding: 8px; border-bottom: 1px solid #21262d;
+    }
+    .filter-panel-search input {
+      width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 4px;
+      color: #c9d1d9; font-size: 12px; padding: 4px 8px; outline: none; font-family: inherit;
+    }
+    .filter-panel-search input:focus { border-color: #58a6ff; }
+    .filter-panel-search input::placeholder { color: #484f58; }
+    .filter-panel-actions {
+      padding: 4px 8px; border-bottom: 1px solid #21262d;
+      display: flex; gap: 4px;
+    }
+    .filter-panel-actions button {
+      background: none; border: 1px solid #30363d; border-radius: 4px;
+      color: #8b949e; font-size: 10px; padding: 2px 8px; cursor: pointer;
+    }
+    .filter-panel-actions button:hover { color: #c9d1d9; border-color: #484f58; }
+    .filter-panel-list {
+      overflow-y: auto; max-height: 240px; padding: 4px 0;
+    }
+    .filter-option {
+      padding: 5px 10px; cursor: pointer; font-size: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .filter-option:hover { background: #30363d; }
+    .filter-option-check {
+      width: 14px; height: 14px; border: 1px solid #30363d; border-radius: 3px;
+      background: #0d1117; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 10px; color: transparent;
+    }
+    .filter-option.selected .filter-option-check {
+      background: #1f6feb; border-color: #1f6feb; color: #fff;
+    }
+    .filter-option-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .filter-option-label { flex: 1; color: #c9d1d9; }
+    .filter-option-count { color: #484f58; font-size: 10px; }
+    .filter-option-hidden { display: none; }
+
+    /* ── Graph ───────────────────────────────────────────────────── */
+
+    #graph { position: absolute; top: 74px; left: 0; right: 0; bottom: 0; }
+
+    /* ── Tooltip ─────────────────────────────────────────────────── */
+
+    #tooltip {
+      position: fixed; display: none; z-index: 200;
+      background: #1c2128; border: 1px solid #30363d; border-radius: 8px;
+      padding: 10px 14px; font-size: 12px; pointer-events: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5); max-width: 360px;
+    }
+    #tooltip .tt-name { font-weight: 600; color: #f0f6fc; font-size: 13px; }
+    #tooltip .tt-path { color: #8b949e; font-size: 11px; margin-top: 2px; font-family: monospace; }
+    #tooltip .tt-stats { margin-top: 6px; font-size: 12px; }
+    #tooltip .tt-type {
+      margin-top: 4px; font-size: 10px; color: #8b949e;
+      background: #21262d; display: inline-block; padding: 1px 6px; border-radius: 4px;
+    }
+
+    /* ── FPS counter ─────────────────────────────────────────────── */
+
+    #frame-graph {
+      position: fixed; top: 80px; right: 16px; z-index: 150;
+      background: rgba(22,27,34,0.85); border: 1px solid #30363d; border-radius: 6px;
+      padding: 6px 8px 4px 8px;
+    }
+    #frame-graph canvas { display: block; }
+    #frame-graph .fg-label {
+      font-size: 9px; color: #484f58; font-family: 'SF Mono', Consolas, monospace;
+      display: flex; justify-content: space-between; margin-top: 2px;
+    }
+
+    /* ── Detail panel ────────────────────────────────────────────── */
+
+    #detail-panel {
+      position: fixed; right: 16px; top: 140px; z-index: 150;
+      background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+      padding: 16px; width: 340px; max-height: calc(100vh - 160px);
+      overflow-y: auto; display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    #detail-panel .dp-close {
+      position: absolute; top: 8px; right: 10px;
+      background: none; border: none; color: #8b949e; cursor: pointer; font-size: 16px;
+    }
+    #detail-panel .dp-close:hover { color: #f0f6fc; }
+    #detail-panel h3 { font-size: 14px; color: #f0f6fc; margin-bottom: 4px; padding-right: 24px; }
+    #detail-panel .dp-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+    #detail-panel .dp-label { color: #8b949e; }
+    #detail-panel .dp-value { color: #c9d1d9; font-family: monospace; }
+    #detail-panel .dp-path { font-size: 11px; color: #8b949e; font-family: monospace; word-break: break-all; margin-bottom: 8px; }
+    .dp-status-badge {
+      display: inline-block; font-size: 10px; padding: 1px 8px; border-radius: 10px;
+      font-weight: 600; margin-left: 6px; vertical-align: middle;
+    }
+    .dp-status-added { background: rgba(63,185,80,0.2); color: #3fb950; }
+    .dp-status-modified { background: rgba(88,166,255,0.2); color: #58a6ff; }
+    .dp-status-deleted { background: rgba(248,81,73,0.2); color: #f85149; }
+    .dp-status-renamed { background: rgba(210,153,34,0.2); color: #d29922; }
+    #detail-panel .dp-connections { margin-top: 10px; border-top: 1px solid #21262d; padding-top: 8px; }
+    .dp-conn-item {
+      font-size: 11px; color: #58a6ff; padding: 3px 0; font-family: monospace;
+      cursor: pointer;
+    }
+    .dp-conn-item:hover { color: #79c0ff; text-decoration: underline; }
+
+    /* ── Diff viewer ─────────────────────────────────────────────── */
+
+    .dp-diff-section { margin-top: 10px; border-top: 1px solid #21262d; padding-top: 8px; }
+    .dp-diff-toggle {
+      background: none; border: 1px solid #30363d; border-radius: 4px;
+      color: #8b949e; font-size: 11px; padding: 2px 8px; cursor: pointer;
+      margin-top: 4px;
+    }
+    .dp-diff-toggle:hover { color: #c9d1d9; border-color: #484f58; }
+    .diff-viewer {
+      background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+      padding: 0; font-family: 'SF Mono', Consolas, monospace; font-size: 11px;
+      max-height: 300px; overflow: auto; margin-top: 6px; line-height: 1.6;
+    }
+    .diff-line { padding: 0 8px; white-space: pre; display: block; }
+    .diff-line-add { background: rgba(63,185,80,0.1); color: #3fb950; }
+    .diff-line-del { background: rgba(248,81,73,0.1); color: #f85149; }
+    .diff-line-hunk { background: rgba(56,58,89,0.3); color: #8b949e; }
+    .diff-line-ctx { color: #8b949e; }
+
+    /* ── Cluster toggle ───────────────────────────────────────────── */
+
+    .cluster-toggle {
+      display: flex; align-items: center; gap: 6px; margin-left: auto;
+      white-space: nowrap;
+    }
+    .cluster-toggle-label { color: #8b949e; font-size: 11px; }
+    .toggle-switch {
+      position: relative; width: 32px; height: 18px; cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: #30363d; border-radius: 9px;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; left: 2px; top: 2px;
+      width: 14px; height: 14px; background: #8b949e; border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #1f6feb; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(14px); background: #fff; }
+
+    /* ── Legend ───────────────────────────────────────────────────── */
+
+    .legend {
+      display: flex; gap: 12px; align-items: center; font-size: 11px; color: #8b949e;
+    }
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+      margin-right: 4px; vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <!-- ── Toolbar ──────────────────────────────────────────────────── -->
+
+  <div id="toolbar">
+    <span class="title">TSMorphGraph</span>
+    <div class="branch-selector-group">
+      <span class="branch-selector-label">Base</span>
+      <select class="branch-select" id="base-select"></select>
+      <span class="branch-dots">...</span>
+      <span class="branch-selector-label">Compare</span>
+      <select class="branch-select" id="branch-select"></select>
+      <button class="branch-reload-btn" id="branch-reload">Reload</button>
+    </div>
+    <span class="badge" id="file-count"></span>
+    <span class="stats">
+      <span class="add" id="additions"></span>
+      <span class="del" id="deletions"></span>
+    </span>
+
+    <!-- Search -->
+    <div id="search-container">
+      <span id="search-icon">&#x1F50D;</span>
+      <input id="search-input" type="text" placeholder="Search files..." autocomplete="off" />
+      <span id="search-kbd"></span>
+      <div id="search-results"></div>
+    </div>
+
+    <div class="right">
+      <span id="fps" style="font-family:'SF Mono',Consolas,monospace;font-size:11px;color:#8b949e;min-width:55px;text-align:right"></span>
+    </div>
+  </div>
+
+  <!-- ── Filter bar ───────────────────────────────────────────────── -->
+
+  <div id="filter-bar">
+    <div class="filter-dropdown" id="filter-type-dropdown"></div>
+    <div class="filter-dropdown" id="filter-group-dropdown"></div>
+    <div class="filter-dropdown" id="filter-status-dropdown"></div>
+    <div class="cluster-toggle">
+      <span class="cluster-toggle-label">Cluster</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="cluster-toggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- ── Graph ────────────────────────────────────────────────────── -->
+
+  <div id="graph"></div>
+
+  <!-- ── FPS ──────────────────────────────────────────────────────── -->
+
+  <div id="frame-graph">
+    <canvas id="fg-canvas" width="160" height="40"></canvas>
+    <div class="fg-label"><span>0</span><span id="fg-peak"></span></div>
+  </div>
+
+  <!-- ── Tooltip ──────────────────────────────────────────────────── -->
+
+  <div id="tooltip">
+    <div class="tt-name"></div>
+    <div class="tt-path"></div>
+    <div class="tt-stats"></div>
+    <div class="tt-type"></div>
+  </div>
+
+  <!-- ── Detail panel ─────────────────────────────────────────────── -->
+
+  <div id="detail-panel">
+    <button class="dp-close" onclick="closeDetail()">&times;</button>
+    <h3 id="dp-name"></h3>
+    <div class="dp-path" id="dp-path"></div>
+    <div class="dp-row"><span class="dp-label">Status</span><span class="dp-value" id="dp-status"></span></div>
+    <div class="dp-row"><span class="dp-label">Additions</span><span class="dp-value add" id="dp-add"></span></div>
+    <div class="dp-row"><span class="dp-label">Deletions</span><span class="dp-value del" id="dp-del"></span></div>
+    <div class="dp-row"><span class="dp-label">Type</span><span class="dp-value" id="dp-type"></span></div>
+    <div class="dp-row"><span class="dp-label">Group</span><span class="dp-value" id="dp-group"></span></div>
+    <div class="dp-connections">
+      <span class="dp-label">Connections:</span>
+      <div id="dp-conns"></div>
+    </div>
+    <div class="dp-diff-section" id="dp-diff-section" style="display:none">
+      <span class="dp-label">Diff</span>
+      <button class="dp-diff-toggle" id="dp-diff-toggle">Show diff</button>
+      <div class="diff-viewer" id="dp-diff-content" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ── Data + Scripts ───────────────────────────────────────────── -->
+
+  <script id="graph-data" type="application/json">__GRAPH_DATA__</script>
+  <script src="https://unpkg.com/force-graph@1.47.3/dist/force-graph.min.js"></script>
+  <script>
+    const data = JSON.parse(document.getElementById('graph-data').textContent);
+
+    // ── Populate toolbar ──────────────────────────────────────────
+
+    document.getElementById('file-count').textContent = data.meta.totalFiles + ' files';
+    document.getElementById('additions').textContent = '+' + data.meta.totalAdditions;
+    document.getElementById('deletions').textContent = ' -' + data.meta.totalDeletions;
+
+    // Keyboard shortcut hint
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    document.getElementById('search-kbd').textContent = isMac ? '\u2318K' : 'Ctrl+K';
+
+    // ── Branch selectors ──────────────────────────────────────────
+
+    const baseSelect = document.getElementById('base-select');
+    const branchSelect = document.getElementById('branch-select');
+    const reloadBtn = document.getElementById('branch-reload');
+    const isServed = window.location.protocol.startsWith('http');
+
+    let selectedBase = data.meta.base;
+    let selectedBranch = data.meta.branch;
+
+    function populateBranchSelects(branches, base, branch) {
+      // Ensure current values are in the list
+      const all = new Set(branches || []);
+      all.add(base);
+      all.add(branch);
+      const sorted = [...all].sort();
+
+      [baseSelect, branchSelect].forEach(sel => {
+        sel.innerHTML = '';
+        sorted.forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b;
+          opt.textContent = b;
+          sel.appendChild(opt);
+        });
+      });
+
+      baseSelect.value = base;
+      branchSelect.value = branch;
+
+      if (!isServed) {
+        baseSelect.disabled = true;
+        branchSelect.disabled = true;
+        baseSelect.title = 'Use --serve flag to enable branch switching';
+        branchSelect.title = 'Use --serve flag to enable branch switching';
+      }
+    }
+
+    populateBranchSelects(data.meta.availableBranches || [], data.meta.base, data.meta.branch);
+
+    function onBranchChange() {
+      const newBase = baseSelect.value;
+      const newBranch = branchSelect.value;
+      if (newBase !== selectedBase || newBranch !== selectedBranch) {
+        reloadBtn.classList.add('visible');
+      } else {
+        reloadBtn.classList.remove('visible');
+      }
+    }
+
+    baseSelect.addEventListener('change', onBranchChange);
+    branchSelect.addEventListener('change', onBranchChange);
+
+    reloadBtn.addEventListener('click', async () => {
+      if (!isServed) return;
+      const newBase = baseSelect.value;
+      const newBranch = branchSelect.value;
+
+      reloadBtn.disabled = true;
+      reloadBtn.textContent = 'Analyzing...';
+
+      try {
+        const resp = await fetch('/api/analyze?base=' + encodeURIComponent(newBase) + '&branch=' + encodeURIComponent(newBranch));
+        if (!resp.ok) {
+          const err = await resp.json();
+          alert('Analysis failed: ' + (err.error || 'Unknown error'));
+          return;
+        }
+        const newData = await resp.json();
+
+        // Update global data
+        data.meta = newData.meta;
+        data.nodes = newData.nodes;
+        data.links = newData.links;
+        selectedBase = newBase;
+        selectedBranch = newBranch;
+
+        // Update toolbar stats
+        document.getElementById('file-count').textContent = data.meta.totalFiles + ' files';
+        document.getElementById('additions').textContent = '+' + data.meta.totalAdditions;
+        document.getElementById('deletions').textContent = ' -' + data.meta.totalDeletions;
+
+        // Update branch selects with any new branches
+        populateBranchSelects(data.meta.availableBranches || [], selectedBase, selectedBranch);
+
+        // Rebuild adjacency
+        neighbors.clear();
+        data.links.forEach(link => {
+          const sid = typeof link.source === 'object' ? link.source.id : link.source;
+          const tid = typeof link.target === 'object' ? link.target.id : link.target;
+          if (!neighbors.has(sid)) neighbors.set(sid, new Set());
+          if (!neighbors.has(tid)) neighbors.set(tid, new Set());
+          neighbors.get(sid).add(tid);
+          neighbors.get(tid).add(sid);
+        });
+        nodeById.clear();
+        data.nodes.forEach(n => nodeById.set(n.id, n));
+
+        // Rebuild filter counts
+        typeCounts.clear(); groupCounts.clear(); statusCounts.clear();
+        visibleTypes.clear(); visibleGroups.clear(); visibleStatuses.clear();
+        data.nodes.forEach(n => {
+          typeCounts.set(n.fileType, (typeCounts.get(n.fileType) || 0) + 1);
+          groupCounts.set(n.group, (groupCounts.get(n.group) || 0) + 1);
+          statusCounts.set(n.status, (statusCounts.get(n.status) || 0) + 1);
+          visibleTypes.add(n.fileType);
+          visibleGroups.add(n.group);
+          visibleStatuses.add(n.status);
+        });
+
+        // Rebuild filter dropdowns
+        document.getElementById('filter-type-dropdown').innerHTML = '';
+        document.getElementById('filter-group-dropdown').innerHTML = '';
+        document.getElementById('filter-status-dropdown').innerHTML = '';
+        buildFilterDropdown(
+          document.getElementById('filter-type-dropdown'),
+          'Type', typeCounts, visibleTypes,
+          key => TYPE_COLOR[key] || null,
+          key => TYPE_LABEL[key] || key,
+          applyFilters
+        );
+        buildFilterDropdown(
+          document.getElementById('filter-group-dropdown'),
+          'Group', groupCounts, visibleGroups,
+          () => null, key => key, applyFilters
+        );
+        buildFilterDropdown(
+          document.getElementById('filter-status-dropdown'),
+          'Status', statusCounts, visibleStatuses,
+          key => STATUS[key] ? STATUS[key].border : '#8b949e',
+          key => key, applyFilters
+        );
+
+        // Reset clustering
+        expandedClusters.clear();
+
+        // Reload graph
+        applyFilters();
+        setTimeout(() => Graph.zoomToFit(400, 60), 500);
+
+        reloadBtn.classList.remove('visible');
+      } catch (e) {
+        alert('Failed to connect to server: ' + e.message);
+      } finally {
+        reloadBtn.disabled = false;
+        reloadBtn.textContent = 'Reload';
+      }
+    });
+
+    // If served, also fetch latest branches on load
+    if (isServed) {
+      fetch('/api/branches').then(r => r.json()).then(({ branches }) => {
+        populateBranchSelects(branches, selectedBase, selectedBranch);
+      }).catch(() => {});
+    }
+
+    // ── Colors ────────────────────────────────────────────────────
+
+    const STATUS = {
+      added:    { fill: 'rgba(63,185,80,0.2)',  border: '#3fb950' },
+      modified: { fill: 'rgba(88,166,255,0.2)',  border: '#58a6ff' },
+      deleted:  { fill: 'rgba(248,81,73,0.2)',   border: '#f85149' },
+      renamed:  { fill: 'rgba(210,153,34,0.2)',  border: '#d29922' },
+    };
+
+    const TYPE_COLOR = {
+      typescript: '#3178c6',
+      javascript: '#f1e05a',
+      json:       '#d29922',
+      style:      '#563d7c',
+      html:       '#e34c26',
+      csharp:     '#68217a',
+      yaml:       '#cb171e',
+      sql:        '#e38c00',
+      markdown:   '#6e7681',
+      other:      '#6e7681',
+    };
+
+    const TYPE_LABEL = {
+      typescript: 'TS', javascript: 'JS', json: 'JSON', style: 'CSS',
+      html: 'HTML', csharp: 'C#', yaml: 'YAML', sql: 'SQL',
+      markdown: 'MD', other: 'Other',
+    };
+
+    // ── Interaction state ─────────────────────────────────────────
+
+    let hoveredNode = null;
+    let selectedNode = null;
+    const highlightNodes = new Set();
+    const highlightLinks = new Set();
+
+    // Build adjacency
+    const neighbors = new Map();
+    data.links.forEach(link => {
+      const sid = typeof link.source === 'object' ? link.source.id : link.source;
+      const tid = typeof link.target === 'object' ? link.target.id : link.target;
+      if (!neighbors.has(sid)) neighbors.set(sid, new Set());
+      if (!neighbors.has(tid)) neighbors.set(tid, new Set());
+      neighbors.get(sid).add(tid);
+      neighbors.get(tid).add(sid);
+    });
+
+    // Node lookup by id
+    const nodeById = new Map();
+    data.nodes.forEach(n => nodeById.set(n.id, n));
+
+    function updateHighlight(node) {
+      highlightNodes.clear();
+      highlightLinks.clear();
+
+      if (node) {
+        highlightNodes.add(node.id);
+        const nb = neighbors.get(node.id);
+        if (nb) nb.forEach(id => highlightNodes.add(id));
+
+        data.links.forEach(link => {
+          const sid = typeof link.source === 'object' ? link.source.id : link.source;
+          const tid = typeof link.target === 'object' ? link.target.id : link.target;
+          if (sid === node.id || tid === node.id) highlightLinks.add(link);
+        });
+      }
+    }
+
+    // ── Filters ───────────────────────────────────────────────────
+
+    const visibleTypes = new Set();
+    const visibleGroups = new Set();
+    const visibleStatuses = new Set();
+
+    // Collect unique types, groups, statuses with counts
+    const typeCounts = new Map();
+    const groupCounts = new Map();
+    const statusCounts = new Map();
+
+    data.nodes.forEach(n => {
+      typeCounts.set(n.fileType, (typeCounts.get(n.fileType) || 0) + 1);
+      groupCounts.set(n.group, (groupCounts.get(n.group) || 0) + 1);
+      statusCounts.set(n.status, (statusCounts.get(n.status) || 0) + 1);
+      visibleTypes.add(n.fileType);
+      visibleGroups.add(n.group);
+      visibleStatuses.add(n.status);
+    });
+
+    // ── Dropdown multiselect builder ──────────────────────────────
+
+    let openDropdown = null; // track which dropdown is open
+
+    function buildFilterDropdown(container, label, itemsMap, selectedSet, colorFn, labelFn, onChange) {
+      const sorted = [...itemsMap.entries()].sort((a, b) => b[1] - a[1]);
+
+      // Trigger button
+      const trigger = document.createElement('div');
+      trigger.className = 'filter-trigger';
+      const triggerLabel = document.createElement('span');
+      triggerLabel.className = 'filter-trigger-label';
+      triggerLabel.textContent = label;
+      const triggerCount = document.createElement('span');
+      triggerCount.className = 'filter-trigger-count';
+      const triggerArrow = document.createElement('span');
+      triggerArrow.className = 'filter-trigger-arrow';
+      triggerArrow.textContent = '\u25BE';
+      trigger.append(triggerLabel, triggerCount, triggerArrow);
+
+      // Panel
+      const panel = document.createElement('div');
+      panel.className = 'filter-panel';
+
+      // Search inside panel
+      const searchWrap = document.createElement('div');
+      searchWrap.className = 'filter-panel-search';
+      const searchInp = document.createElement('input');
+      searchInp.type = 'text';
+      searchInp.placeholder = 'Search ' + label.toLowerCase() + '...';
+      searchWrap.appendChild(searchInp);
+
+      // All / None actions
+      const actions = document.createElement('div');
+      actions.className = 'filter-panel-actions';
+      const allBtn = document.createElement('button');
+      allBtn.textContent = 'All';
+      const noneBtn = document.createElement('button');
+      noneBtn.textContent = 'None';
+      actions.append(allBtn, noneBtn);
+
+      // Option list
+      const list = document.createElement('div');
+      list.className = 'filter-panel-list';
+
+      const optionEls = [];
+
+      sorted.forEach(([key, count]) => {
+        const opt = document.createElement('div');
+        opt.className = 'filter-option' + (selectedSet.has(key) ? ' selected' : '');
+        opt.dataset.key = key;
+
+        const check = document.createElement('span');
+        check.className = 'filter-option-check';
+        check.textContent = '\u2713';
+
+        const lbl = document.createElement('span');
+        lbl.className = 'filter-option-label';
+        lbl.textContent = labelFn(key);
+
+        const cnt = document.createElement('span');
+        cnt.className = 'filter-option-count';
+        cnt.textContent = count;
+
+        const color = colorFn(key);
+        if (color) {
+          const dot = document.createElement('span');
+          dot.className = 'filter-option-dot';
+          dot.style.background = color;
+          opt.append(check, dot, lbl, cnt);
+        } else {
+          opt.append(check, lbl, cnt);
+        }
+
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (selectedSet.has(key)) selectedSet.delete(key);
+          else selectedSet.add(key);
+          opt.classList.toggle('selected', selectedSet.has(key));
+          updateTriggerCount();
+          onChange();
+        });
+
+        list.appendChild(opt);
+        optionEls.push({ el: opt, key, label: labelFn(key).toLowerCase() });
+      });
+
+      panel.append(searchWrap, actions, list);
+      container.append(trigger, panel);
+
+      // Search filtering within the dropdown
+      searchInp.addEventListener('input', () => {
+        const q = searchInp.value.toLowerCase().trim();
+        optionEls.forEach(o => {
+          const match = !q || o.label.includes(q) || o.key.toLowerCase().includes(q);
+          o.el.classList.toggle('filter-option-hidden', !match);
+        });
+      });
+
+      // Prevent search input clicks from closing dropdown
+      searchInp.addEventListener('click', (e) => e.stopPropagation());
+
+      // All / None
+      allBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sorted.forEach(([key]) => selectedSet.add(key));
+        optionEls.forEach(o => o.el.classList.add('selected'));
+        updateTriggerCount();
+        onChange();
+      });
+      noneBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedSet.clear();
+        optionEls.forEach(o => o.el.classList.remove('selected'));
+        updateTriggerCount();
+        onChange();
+      });
+
+      // Toggle open/close
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = panel.classList.contains('open');
+        // Close any other open dropdown
+        if (openDropdown && openDropdown !== panel) {
+          openDropdown.classList.remove('open');
+          openDropdown.previousElementSibling.classList.remove('open');
+        }
+        panel.classList.toggle('open', !isOpen);
+        trigger.classList.toggle('open', !isOpen);
+        openDropdown = !isOpen ? panel : null;
+        if (!isOpen) { searchInp.value = ''; searchInp.dispatchEvent(new Event('input')); searchInp.focus(); }
+      });
+
+      function updateTriggerCount() {
+        const total = sorted.length;
+        const selected = selectedSet.size;
+        triggerCount.textContent = selected + '/' + total;
+        triggerCount.style.background = selected === total ? '#0d419d55' : selected === 0 ? '#da363344' : '#d2992244';
+        triggerCount.style.color = selected === total ? '#58a6ff' : selected === 0 ? '#f85149' : '#d29922';
+      }
+
+      // Expose a refresh for when external code modifies selectedSet
+      container._refresh = () => {
+        optionEls.forEach(o => o.el.classList.toggle('selected', selectedSet.has(o.key)));
+        updateTriggerCount();
+      };
+
+      updateTriggerCount();
+    }
+
+    // Close dropdowns when clicking elsewhere
+    document.addEventListener('click', () => {
+      if (openDropdown) {
+        openDropdown.classList.remove('open');
+        openDropdown.previousElementSibling.classList.remove('open');
+        openDropdown = null;
+      }
+    });
+
+    // Build the three filter dropdowns
+    buildFilterDropdown(
+      document.getElementById('filter-type-dropdown'),
+      'Type', typeCounts, visibleTypes,
+      key => TYPE_COLOR[key] || null,
+      key => TYPE_LABEL[key] || key,
+      applyFilters
+    );
+
+    buildFilterDropdown(
+      document.getElementById('filter-group-dropdown'),
+      'Group', groupCounts, visibleGroups,
+      () => null,
+      key => key,
+      applyFilters
+    );
+
+    buildFilterDropdown(
+      document.getElementById('filter-status-dropdown'),
+      'Status', statusCounts, visibleStatuses,
+      key => STATUS[key] ? STATUS[key].border : '#8b949e',
+      key => key,
+      applyFilters
+    );
+
+    function isNodeVisible(node) {
+      return visibleTypes.has(node.fileType) && visibleGroups.has(node.group) && visibleStatuses.has(node.status);
+    }
+
+    // ── Clustering ────────────────────────────────────────────────
+
+    let clusteringEnabled = false;
+    const expandedClusters = new Set(); // group names that are expanded
+
+    function buildClusteredData(nodes, links) {
+      if (!clusteringEnabled) return { nodes, links };
+
+      // Separate nodes into clustered (collapsed) and expanded
+      const clusterNodes = []; // synthetic cluster nodes
+      const regularNodes = []; // nodes in expanded clusters or ungroupable
+      const groupChildren = new Map(); // group -> [nodes]
+
+      nodes.forEach(n => {
+        const g = n.group;
+        if (!groupChildren.has(g)) groupChildren.set(g, []);
+        groupChildren.get(g).push(n);
+      });
+
+      const clusterIdMap = new Map(); // original node id -> cluster id (for collapsed nodes)
+
+      groupChildren.forEach((children, group) => {
+        if (expandedClusters.has(group) || children.length <= 2) {
+          // Expanded or too small to cluster — show individual nodes
+          regularNodes.push(...children);
+        } else {
+          // Collapse into a cluster node
+          const clusterId = '__cluster__' + group;
+          const totalAdd = children.reduce((s, n) => s + n.additions, 0);
+          const totalDel = children.reduce((s, n) => s + n.deletions, 0);
+
+          // Find dominant file type for color
+          const typeCounts = {};
+          children.forEach(n => { typeCounts[n.fileType] = (typeCounts[n.fileType] || 0) + 1; });
+          const dominantType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0][0];
+
+          clusterNodes.push({
+            id: clusterId,
+            name: group,
+            filePath: group + '/',
+            additions: totalAdd,
+            deletions: totalDel,
+            totalChanges: totalAdd + totalDel,
+            status: 'modified',
+            fileType: dominantType,
+            group: group,
+            __isCluster: true,
+            __childCount: children.length,
+            __children: children,
+          });
+
+          children.forEach(n => clusterIdMap.set(n.id, clusterId));
+        }
+      });
+
+      const allNodes = [...regularNodes, ...clusterNodes];
+      const allNodeIds = new Set(allNodes.map(n => n.id));
+
+      // Remap links: if a node is in a collapsed cluster, point to the cluster node
+      const linkSeen = new Set();
+      const remappedLinks = [];
+      links.forEach(l => {
+        let sid = typeof l.source === 'object' ? l.source.id : l.source;
+        let tid = typeof l.target === 'object' ? l.target.id : l.target;
+        sid = clusterIdMap.get(sid) || sid;
+        tid = clusterIdMap.get(tid) || tid;
+        if (sid === tid) return; // skip self-links within same cluster
+        if (!allNodeIds.has(sid) || !allNodeIds.has(tid)) return;
+        const key = sid + '->' + tid;
+        if (linkSeen.has(key)) return;
+        linkSeen.add(key);
+        remappedLinks.push({ source: sid, target: tid });
+      });
+
+      return { nodes: allNodes, links: remappedLinks };
+    }
+
+    function applyFilters() {
+      const visibleNodeIds = new Set();
+      data.nodes.forEach(n => { if (isNodeVisible(n)) visibleNodeIds.add(n.id); });
+
+      const filteredNodes = data.nodes.filter(n => visibleNodeIds.has(n.id));
+      const filteredLinks = data.links.filter(l => {
+        const sid = typeof l.source === 'object' ? l.source.id : l.source;
+        const tid = typeof l.target === 'object' ? l.target.id : l.target;
+        return visibleNodeIds.has(sid) && visibleNodeIds.has(tid);
+      });
+
+      const clustered = buildClusteredData(filteredNodes, filteredLinks);
+      Graph.graphData(clustered);
+    }
+
+    let _suppressZoomExpand = false;
+
+    function expandCluster(group) {
+      expandedClusters.add(group);
+      _suppressZoomExpand = true;
+      applyFilters();
+      // Re-enable zoom expand after the zoom animation settles
+      setTimeout(() => { _suppressZoomExpand = false; }, 800);
+    }
+
+    // Cluster toggle switch
+    document.getElementById('cluster-toggle').addEventListener('change', (e) => {
+      clusteringEnabled = e.target.checked;
+      expandedClusters.clear();
+      applyFilters();
+    });
+
+    // ── Search ────────────────────────────────────────────────────
+
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    let searchActiveIndex = -1;
+
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase().trim();
+      if (!query) { searchResults.style.display = 'none'; searchActiveIndex = -1; return; }
+
+      const matches = data.nodes
+        .filter(n => n.filePath.toLowerCase().includes(query) || n.name.toLowerCase().includes(query))
+        .slice(0, 10);
+
+      if (matches.length === 0) {
+        searchResults.innerHTML = '<div style="padding:10px 12px;color:#484f58;font-size:12px">No results</div>';
+        searchResults.style.display = 'block';
+        searchActiveIndex = -1;
+        return;
+      }
+
+      searchResults.innerHTML = '';
+      searchActiveIndex = -1;
+      matches.forEach((node, i) => {
+        const item = document.createElement('div');
+        item.className = 'search-item';
+        item.dataset.index = i;
+
+        const statusColor = STATUS[node.status] ? STATUS[node.status].border : '#8b949e';
+        item.innerHTML =
+          '<div class="search-item-name">' + escapeHtml(node.name) +
+          '<span class="search-item-badge" style="background:' + statusColor + '22;color:' + statusColor + '">' + node.status + '</span>' +
+          '</div>' +
+          '<div class="search-item-path">' + escapeHtml(node.filePath) + '</div>';
+
+        item.addEventListener('click', () => navigateToNode(node));
+        item.addEventListener('mouseenter', () => {
+          searchActiveIndex = i;
+          updateSearchActive();
+        });
+        searchResults.appendChild(item);
+      });
+      searchResults.style.display = 'block';
+      searchResults._matches = matches;
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      const items = searchResults.querySelectorAll('.search-item');
+      if (!items.length) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        searchActiveIndex = Math.min(searchActiveIndex + 1, items.length - 1);
+        updateSearchActive();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        searchActiveIndex = Math.max(searchActiveIndex - 1, 0);
+        updateSearchActive();
+      } else if (e.key === 'Enter' && searchActiveIndex >= 0) {
+        e.preventDefault();
+        const matches = searchResults._matches;
+        if (matches && matches[searchActiveIndex]) {
+          navigateToNode(matches[searchActiveIndex]);
+        }
+      } else if (e.key === 'Escape') {
+        searchInput.blur();
+        searchResults.style.display = 'none';
+        searchActiveIndex = -1;
+      }
+    });
+
+    searchInput.addEventListener('blur', () => {
+      // Delay to allow click on results
+      setTimeout(() => { searchResults.style.display = 'none'; searchActiveIndex = -1; }, 200);
+    });
+
+    function updateSearchActive() {
+      searchResults.querySelectorAll('.search-item').forEach((el, i) => {
+        el.classList.toggle('active', i === searchActiveIndex);
+        if (i === searchActiveIndex) el.scrollIntoView({ block: 'nearest' });
+      });
+    }
+
+    function navigateToNode(node) {
+      // Ensure node is visible in filters
+      let changed = false;
+      if (!visibleTypes.has(node.fileType)) { visibleTypes.add(node.fileType); changed = true; }
+      if (!visibleGroups.has(node.group)) { visibleGroups.add(node.group); changed = true; }
+      if (!visibleStatuses.has(node.status)) { visibleStatuses.add(node.status); changed = true; }
+      if (changed) {
+        document.getElementById('filter-type-dropdown')._refresh();
+        document.getElementById('filter-group-dropdown')._refresh();
+        document.getElementById('filter-status-dropdown')._refresh();
+      }
+
+      // If clustering is on, expand only the cluster containing this node
+      if (clusteringEnabled && !expandedClusters.has(node.group)) {
+        expandedClusters.add(node.group);
+        _suppressZoomExpand = true;
+        setTimeout(() => { _suppressZoomExpand = false; }, 800);
+      }
+
+      applyFilters();
+
+      // Find the force-graph node object (which has x, y)
+      // Use a short delay to let force-graph process the new data after cluster expansion
+      setTimeout(() => {
+        const graphNodes = Graph.graphData().nodes;
+        const gNode = graphNodes.find(n => n.id === node.id);
+        if (!gNode) return;
+
+        selectedNode = gNode;
+        updateHighlight(gNode);
+        showDetail(gNode);
+        Graph.centerAt(gNode.x, gNode.y, 600);
+        Graph.zoom(3, 600);
+      }, clusteringEnabled ? 100 : 0);
+
+      searchInput.value = '';
+      searchResults.style.display = 'none';
+      searchActiveIndex = -1;
+    }
+
+    // Cmd+K / Ctrl+K shortcut
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+    });
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ── Tooltip ───────────────────────────────────────────────────
+
+    const tooltip = document.getElementById('tooltip');
+
+    // ── Force graph ───────────────────────────────────────────────
+
+    const Graph = ForceGraph()(document.getElementById('graph'))
+      .graphData(data)
+      .nodeId('id')
+      .backgroundColor('#0d1117')
+      .linkColor(link => highlightLinks.has(link) ? '#58a6ff' : 'rgba(88,166,255,0.15)')
+      .linkWidth(link => highlightLinks.has(link) ? 2 : 0.8)
+      .linkDirectionalArrowLength(6)
+      .linkDirectionalArrowRelPos(1)
+      .linkDirectionalArrowColor(link => highlightLinks.has(link) ? '#58a6ff' : 'rgba(88,166,255,0.3)')
+      .linkCurvature(0.15)
+      .nodeCanvasObject((node, ctx, globalScale) => {
+        const s = STATUS[node.status] || STATUS.modified;
+        const typeColor = TYPE_COLOR[node.fileType] || TYPE_COLOR.other;
+        const totalChanges = Math.max(node.totalChanges || 1, 1);
+        const isCluster = node.__isCluster;
+        const r = isCluster
+          ? Math.sqrt(node.__childCount) * 4 + 12
+          : Math.sqrt(totalChanges) * 1.2 + 5;
+
+        const isHighlighted = highlightNodes.size === 0 || highlightNodes.has(node.id);
+        const alpha = isHighlighted ? 1 : 0.15;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        if (highlightNodes.has(node.id) && highlightNodes.size > 0) {
+          ctx.shadowColor = typeColor;
+          ctx.shadowBlur = isCluster ? 20 : 12;
+        }
+
+        if (isCluster) {
+          // ── Cluster node: dashed ring + inner fill + count badge ──
+          // Outer dashed ring
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, r + 3 / globalScale, 0, 2 * Math.PI);
+          ctx.setLineDash([4 / globalScale, 3 / globalScale]);
+          ctx.strokeStyle = typeColor;
+          ctx.lineWidth = 1.5 / globalScale;
+          ctx.globalAlpha = alpha * 0.6;
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = alpha;
+
+          // Inner filled circle
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+          ctx.fillStyle = typeColor;
+          ctx.globalAlpha = alpha * 0.35;
+          ctx.fill();
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = typeColor;
+          ctx.lineWidth = 2 / globalScale;
+          ctx.globalAlpha = alpha * 0.8;
+          ctx.stroke();
+          ctx.globalAlpha = alpha;
+          ctx.shadowBlur = 0;
+
+          // Count badge in center
+          const badgeFontSize = Math.min(20 / globalScale, r * 0.7);
+          ctx.font = `700 ${badgeFontSize}px -apple-system, "Segoe UI", system-ui, sans-serif`;
+          ctx.fillStyle = '#f0f6fc';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(node.__childCount, node.x, node.y);
+
+          // Group name below
+          if (globalScale > 0.25) {
+            const nameFontSize = Math.min(14 / globalScale, 6);
+            ctx.font = `700 ${nameFontSize}px -apple-system, "Segoe UI", system-ui, sans-serif`;
+            ctx.fillStyle = '#e6edf3';
+            ctx.textBaseline = 'top';
+            ctx.fillText(node.name, node.x, node.y + r + 4 / globalScale);
+
+            const subFontSize = nameFontSize * 0.7;
+            ctx.font = `${subFontSize}px "SF Mono", Consolas, monospace`;
+            ctx.fillStyle = '#8b949e';
+            ctx.fillText(node.__childCount + ' files', node.x, node.y + r + 4 / globalScale + nameFontSize + 2 / globalScale);
+          }
+        } else {
+          // ── Regular node ──
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+          ctx.fillStyle = typeColor;
+          ctx.globalAlpha = alpha * 0.85;
+          ctx.fill();
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = 'rgba(240,246,252,0.15)';
+          ctx.lineWidth = 1 / globalScale;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          if (node.status !== 'modified') {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, r + 2 / globalScale, 0, 2 * Math.PI);
+            ctx.strokeStyle = s.border;
+            ctx.lineWidth = 1.5 / globalScale;
+            ctx.globalAlpha = alpha * 0.5;
+            ctx.stroke();
+            ctx.globalAlpha = alpha;
+          }
+
+          if (globalScale > 0.4) {
+            const fontSize = Math.min(14 / globalScale, 5);
+            ctx.font = `600 ${fontSize}px -apple-system, "Segoe UI", system-ui, sans-serif`;
+            ctx.fillStyle = '#e6edf3';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(node.name, node.x, node.y + r + 3 / globalScale);
+
+            if (globalScale > 0.7 && node.totalChanges > 0) {
+              const smallFont = fontSize * 0.7;
+              ctx.font = `${smallFont}px "SF Mono", Consolas, monospace`;
+              ctx.fillStyle = '#8b949e';
+              const statsText = `+${node.additions} -${node.deletions}`;
+              ctx.fillText(statsText, node.x, node.y + r + 3 / globalScale + fontSize + 2 / globalScale);
+            }
+          }
+        }
+
+        ctx.restore();
+      })
+      .nodePointerAreaPaint((node, color, ctx) => {
+        const isCluster = node.__isCluster;
+        const r = isCluster
+          ? Math.sqrt(node.__childCount) * 4 + 12
+          : Math.sqrt(Math.max(node.totalChanges || 1, 1)) * 1.2 + 5;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r + 4, 0, 2 * Math.PI);
+        ctx.fill();
+      })
+      .onNodeHover(node => {
+        hoveredNode = node;
+        updateHighlight(node || selectedNode);
+
+        if (node) {
+          tooltip.querySelector('.tt-name').textContent = node.name;
+          tooltip.querySelector('.tt-path').textContent = node.filePath;
+          tooltip.querySelector('.tt-stats').innerHTML =
+            `<span style="color:#3fb950">+${node.additions}</span> <span style="color:#f85149">-${node.deletions}</span>`;
+          tooltip.querySelector('.tt-type').textContent = node.fileType;
+          tooltip.style.display = 'block';
+        } else {
+          tooltip.style.display = 'none';
+        }
+      })
+      .onNodeClick(node => {
+        if (node.__isCluster) {
+          // Expand cluster: remember position, expand, then zoom into where children land
+          const cx = node.x, cy = node.y;
+          expandCluster(node.group);
+          Graph.centerAt(cx, cy, 400);
+          Graph.zoom(2, 400);
+          return;
+        }
+        selectedNode = node;
+        updateHighlight(node);
+        showDetail(node);
+
+        Graph.centerAt(node.x, node.y, 400);
+        Graph.zoom(2, 400);
+      })
+      .onBackgroundClick(() => {
+        selectedNode = null;
+        updateHighlight(null);
+        closeDetail();
+      })
+      .onZoom((() => {
+        // Debounced zoom-based auto-expand to avoid feedback loops
+        let zoomTimer = null;
+        let lastExpansionZoom = 0;
+        return ({ k, x, y }) => {
+          if (!clusteringEnabled || _suppressZoomExpand) return;
+          if (zoomTimer) clearTimeout(zoomTimer);
+          zoomTimer = setTimeout(() => {
+            if (_suppressZoomExpand) return;
+            if (k > 2.5 && k > lastExpansionZoom) {
+              const graphNodes = Graph.graphData().nodes;
+              const graphEl = document.getElementById('graph');
+              const w = graphEl.clientWidth;
+              const h = graphEl.clientHeight;
+              const cx = (w / 2 - x) / k;
+              const cy = (h / 2 - y) / k;
+              const viewRadius = Math.max(w, h) / k / 2;
+              let expanded = false;
+              graphNodes.forEach(n => {
+                if (n.__isCluster) {
+                  const dx = (n.x || 0) - cx;
+                  const dy = (n.y || 0) - cy;
+                  if (Math.sqrt(dx * dx + dy * dy) < viewRadius) {
+                    expandedClusters.add(n.group);
+                    expanded = true;
+                  }
+                }
+              });
+              if (expanded) {
+                lastExpansionZoom = k;
+                applyFilters();
+              }
+            } else if (k < 1.0) {
+              lastExpansionZoom = 0;
+            }
+          }, 300);
+        };
+      })())
+      .cooldownTime(8000)
+      .d3AlphaDecay(0.05)
+      .d3VelocityDecay(0.65);
+
+    // Configure forces
+    Graph.d3Force('charge').strength(-200).distanceMax(300);
+    Graph.d3Force('link').distance(80).strength(0.4);
+    Graph.d3Force('center').strength(0.1);
+
+    // Track mouse for tooltip
+    document.getElementById('graph').addEventListener('mousemove', (e) => {
+      tooltip.style.left = (e.clientX + 16) + 'px';
+      tooltip.style.top = (e.clientY + 16) + 'px';
+    });
+
+    // ── Detail panel ──────────────────────────────────────────────
+
+    function showDetail(node) {
+      const panel = document.getElementById('detail-panel');
+      const statusBadge = '<span class="dp-status-badge dp-status-' + node.status + '">' + node.status + '</span>';
+      document.getElementById('dp-name').innerHTML = escapeHtml(node.name) + statusBadge;
+      document.getElementById('dp-path').textContent = node.filePath;
+      document.getElementById('dp-status').innerHTML = '<span style="color:' + (STATUS[node.status] || STATUS.modified).border + '">' + node.status + '</span>';
+      document.getElementById('dp-add').textContent = '+' + node.additions;
+      document.getElementById('dp-del').textContent = '-' + node.deletions;
+      document.getElementById('dp-type').textContent = node.fileType;
+      document.getElementById('dp-group').textContent = node.group;
+
+      // Connections — clickable
+      const conns = document.getElementById('dp-conns');
+      conns.innerHTML = '';
+      const nb = neighbors.get(node.id);
+      if (nb && nb.size > 0) {
+        nb.forEach(id => {
+          const el = document.createElement('div');
+          el.className = 'dp-conn-item';
+          el.textContent = id.split('/').pop();
+          el.title = id;
+          el.addEventListener('click', () => {
+            const target = nodeById.get(id);
+            if (target) navigateToNode(target);
+          });
+          conns.appendChild(el);
+        });
+      } else {
+        conns.innerHTML = '<div style="color:#484f58;font-size:11px">No connections</div>';
+      }
+
+      // Diff viewer
+      const diffSection = document.getElementById('dp-diff-section');
+      const diffToggle = document.getElementById('dp-diff-toggle');
+      const diffContent = document.getElementById('dp-diff-content');
+
+      if (node.diffContent) {
+        diffSection.style.display = 'block';
+        diffToggle.textContent = 'Show diff';
+        diffContent.style.display = 'none';
+
+        diffToggle.onclick = () => {
+          if (diffContent.style.display === 'none') {
+            diffContent.style.display = 'block';
+            diffToggle.textContent = 'Hide diff';
+            renderDiff(node.diffContent, diffContent);
+          } else {
+            diffContent.style.display = 'none';
+            diffToggle.textContent = 'Show diff';
+          }
+        };
+      } else {
+        diffSection.style.display = 'none';
+      }
+
+      panel.style.display = 'block';
+    }
+
+    function renderDiff(diffStr, container) {
+      container.innerHTML = '';
+      const lines = diffStr.split('\n');
+      lines.forEach(line => {
+        const span = document.createElement('span');
+        span.className = 'diff-line';
+        if (line.startsWith('+') && !line.startsWith('+++')) {
+          span.className += ' diff-line-add';
+        } else if (line.startsWith('-') && !line.startsWith('---')) {
+          span.className += ' diff-line-del';
+        } else if (line.startsWith('@@')) {
+          span.className += ' diff-line-hunk';
+        } else {
+          span.className += ' diff-line-ctx';
+        }
+        span.textContent = line;
+        container.appendChild(span);
+      });
+    }
+
+    function closeDetail() {
+      document.getElementById('detail-panel').style.display = 'none';
+    }
+
+    // ── FPS counter + frame graph ─────────────────────────────────
+
+    const fpsEl = document.getElementById('fps');
+    const fgCanvas = document.getElementById('fg-canvas');
+    const fgCtx = fgCanvas.getContext('2d');
+    const fgPeakEl = document.getElementById('fg-peak');
+    const FG_W = 160, FG_H = 40;
+    const fpsHistory = new Array(FG_W).fill(0);
+    let frameCount = 0;
+    let lastFpsTime = performance.now();
+    let peakFps = 0;
+
+    function drawFrameGraph() {
+      fgCtx.clearRect(0, 0, FG_W, FG_H);
+
+      const target60 = FG_H - (60 / Math.max(peakFps, 60)) * FG_H;
+      fgCtx.strokeStyle = 'rgba(63,185,80,0.2)';
+      fgCtx.lineWidth = 1;
+      fgCtx.setLineDash([2, 2]);
+      fgCtx.beginPath();
+      fgCtx.moveTo(0, target60);
+      fgCtx.lineTo(FG_W, target60);
+      fgCtx.stroke();
+      fgCtx.setLineDash([]);
+
+      const maxFps = Math.max(peakFps, 60);
+      for (let i = 0; i < FG_W; i++) {
+        const fps = fpsHistory[i];
+        const h = (fps / maxFps) * FG_H;
+        const color = fps >= 55 ? '#3fb950' : fps >= 30 ? '#d29922' : '#f85149';
+        fgCtx.fillStyle = color;
+        fgCtx.fillRect(i, FG_H - h, 1, h);
+      }
+    }
+
+    (function fpsLoop() {
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFpsTime >= 1000) {
+        const fps = frameCount;
+        fpsEl.textContent = fps + ' fps';
+        if (fps > peakFps) peakFps = fps;
+        fgPeakEl.textContent = peakFps + ' peak';
+
+        fpsHistory.shift();
+        fpsHistory.push(fps);
+        drawFrameGraph();
+
+        frameCount = 0;
+        lastFpsTime = now;
+      }
+      requestAnimationFrame(fpsLoop);
+    })();
+
+    // Fit to view after simulation settles
+    setTimeout(() => Graph.zoomToFit(400, 60), 1500);
+  </script>
+</body>
+</html>

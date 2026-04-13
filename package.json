@@ -1,0 +1,33 @@
+{
+  "name": "tsmorph-graph",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "tsmorph-graph": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/",
+    "src/template.html"
+  ],
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "analyze": "tsx src/cli.ts",
+    "generate": "tsx src/generate-test-data.ts",
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "ts-morph": "^24.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "nx": "^22.6.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
