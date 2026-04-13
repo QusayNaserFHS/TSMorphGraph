@@ -38,7 +38,6 @@
       max-width: 180px; text-overflow: ellipsis;
     }
     .branch-select:focus { border-color: #58a6ff; }
-    .branch-select:disabled { opacity: 0.5; cursor: default; }
     .branch-dots { color: #484f58; font-size: 12px; margin: 0 2px; }
     .branch-reload-btn {
       background: #1f6feb; border: none; border-radius: 5px;
@@ -431,13 +430,6 @@
 
       baseSelect.value = base;
       branchSelect.value = branch;
-
-      if (!isServed) {
-        baseSelect.disabled = true;
-        branchSelect.disabled = true;
-        baseSelect.title = 'Use --serve flag to enable branch switching';
-        branchSelect.title = 'Use --serve flag to enable branch switching';
-      }
     }
 
     populateBranchSelects(data.meta.availableBranches || [], data.meta.base, data.meta.branch);
@@ -456,9 +448,19 @@
     branchSelect.addEventListener('change', onBranchChange);
 
     reloadBtn.addEventListener('click', async () => {
-      if (!isServed) return;
       const newBase = baseSelect.value;
       const newBranch = branchSelect.value;
+
+      if (!isServed) {
+        // Static file mode — copy CLI command and suggest --serve
+        const repoPath = data.meta.repoPath || '.';
+        const cmd = 'npx tsmorph-graph --repo ' + repoPath + ' --base ' + newBase + ' --branch ' + newBranch + ' --diff-content --serve';
+        try { await navigator.clipboard.writeText(cmd); } catch {}
+        reloadBtn.textContent = 'Copied!';
+        alert('To switch branches live, run with --serve:\n\n' + cmd + '\n\n(command copied to clipboard)');
+        setTimeout(() => { reloadBtn.textContent = 'Reload'; }, 2000);
+        return;
+      }
 
       reloadBtn.disabled = true;
       reloadBtn.textContent = 'Analyzing...';
