@@ -316,7 +316,9 @@ function generateHtml(data: GraphData): string {
   const templatePath = path.join(__dirname, 'template.html');
   const template = fs.readFileSync(templatePath, 'utf-8');
   const json = JSON.stringify(data).replace(/<\//g, '<\\/');
-  return template.replace('__GRAPH_DATA__', () => json);
+  return template
+    .replace('__GRAPH_DATA__', () => json)
+    .replace('__ALL_BRANCH_DATA__', () => '{}');
 }
 
 // ── Main ────────────────────────────────────────────────────────────

@@ -387,9 +387,11 @@
   <!-- ── Data + Scripts ───────────────────────────────────────────── -->
 
   <script id="graph-data" type="application/json">__GRAPH_DATA__</script>
+  <script id="all-branch-data" type="application/json">__ALL_BRANCH_DATA__</script>
   <script src="https://unpkg.com/force-graph@1.47.3/dist/force-graph.min.js"></script>
   <script>
     const data = JSON.parse(document.getElementById('graph-data').textContent);
+    const allBranchData = JSON.parse(document.getElementById('all-branch-data').textContent || '{}');
 
     // ── Populate toolbar ──────────────────────────────────────────
 
@@ -447,113 +449,118 @@
     baseSelect.addEventListener('change', onBranchChange);
     branchSelect.addEventListener('change', onBranchChange);
 
+    function loadNewData(newData) {
+      data.meta = newData.meta;
+      data.nodes = newData.nodes;
+      data.links = newData.links;
+
+      // Update toolbar stats
+      document.getElementById('file-count').textContent = data.meta.totalFiles + ' files';
+      document.getElementById('additions').textContent = '+' + data.meta.totalAdditions;
+      document.getElementById('deletions').textContent = ' -' + data.meta.totalDeletions;
+
+      // Rebuild adjacency
+      neighbors.clear();
+      data.links.forEach(link => {
+        const sid = typeof link.source === 'object' ? link.source.id : link.source;
+        const tid = typeof link.target === 'object' ? link.target.id : link.target;
+        if (!neighbors.has(sid)) neighbors.set(sid, new Set());
+        if (!neighbors.has(tid)) neighbors.set(tid, new Set());
+        neighbors.get(sid).add(tid);
+        neighbors.get(tid).add(sid);
+      });
+      nodeById.clear();
+      data.nodes.forEach(n => nodeById.set(n.id, n));
+
+      // Rebuild filter counts
+      typeCounts.clear(); groupCounts.clear(); statusCounts.clear();
+      visibleTypes.clear(); visibleGroups.clear(); visibleStatuses.clear();
+      data.nodes.forEach(n => {
+        typeCounts.set(n.fileType, (typeCounts.get(n.fileType) || 0) + 1);
+        groupCounts.set(n.group, (groupCounts.get(n.group) || 0) + 1);
+        statusCounts.set(n.status, (statusCounts.get(n.status) || 0) + 1);
+        visibleTypes.add(n.fileType);
+        visibleGroups.add(n.group);
+        visibleStatuses.add(n.status);
+      });
+
+      // Rebuild filter dropdowns
+      document.getElementById('filter-type-dropdown').innerHTML = '';
+      document.getElementById('filter-group-dropdown').innerHTML = '';
+      document.getElementById('filter-status-dropdown').innerHTML = '';
+      buildFilterDropdown(
+        document.getElementById('filter-type-dropdown'),
+        'Type', typeCounts, visibleTypes,
+        key => TYPE_COLOR[key] || null,
+        key => TYPE_LABEL[key] || key,
+        applyFilters
+      );
+      buildFilterDropdown(
+        document.getElementById('filter-group-dropdown'),
+        'Group', groupCounts, visibleGroups,
+        () => null, key => key, applyFilters
+      );
+      buildFilterDropdown(
+        document.getElementById('filter-status-dropdown'),
+        'Status', statusCounts, visibleStatuses,
+        key => STATUS[key] ? STATUS[key].border : '#8b949e',
+        key => key, applyFilters
+      );
+
+      // Reset clustering and detail panel
+      expandedClusters.clear();
+      closeDetail();
+      selectedNode = null;
+      updateHighlight(null);
+
+      // Reload graph
+      applyFilters();
+      setTimeout(() => Graph.zoomToFit(400, 60), 500);
+    }
+
     reloadBtn.addEventListener('click', async () => {
-      const newBase = baseSelect.value;
       const newBranch = branchSelect.value;
 
-      if (!isServed) {
-        // Static file mode — copy CLI command and suggest --serve
-        const repoPath = data.meta.repoPath || '.';
-        const cmd = 'npx tsmorph-graph --repo ' + repoPath + ' --base ' + newBase + ' --branch ' + newBranch + ' --diff-content --serve';
-        try { await navigator.clipboard.writeText(cmd); } catch {}
-        reloadBtn.textContent = 'Copied!';
-        alert('To switch branches live, run with --serve:\n\n' + cmd + '\n\n(command copied to clipboard)');
-        setTimeout(() => { reloadBtn.textContent = 'Reload'; }, 2000);
+      // Try pre-embedded data first (instant switch)
+      if (allBranchData[newBranch]) {
+        selectedBranch = newBranch;
+        loadNewData(allBranchData[newBranch]);
+        reloadBtn.classList.remove('visible');
         return;
       }
 
-      reloadBtn.disabled = true;
-      reloadBtn.textContent = 'Analyzing...';
-
-      try {
-        const resp = await fetch('/api/analyze?base=' + encodeURIComponent(newBase) + '&branch=' + encodeURIComponent(newBranch));
-        if (!resp.ok) {
-          const err = await resp.json();
-          alert('Analysis failed: ' + (err.error || 'Unknown error'));
-          return;
+      // Try server API (live mode)
+      if (isServed) {
+        const newBase = baseSelect.value;
+        reloadBtn.disabled = true;
+        reloadBtn.textContent = 'Analyzing...';
+        try {
+          const resp = await fetch('/api/analyze?base=' + encodeURIComponent(newBase) + '&branch=' + encodeURIComponent(newBranch));
+          if (!resp.ok) {
+            const err = await resp.json();
+            alert('Analysis failed: ' + (err.error || 'Unknown error'));
+            return;
+          }
+          const newData = await resp.json();
+          selectedBase = newBase;
+          selectedBranch = newBranch;
+          populateBranchSelects(data.meta.availableBranches || [], selectedBase, selectedBranch);
+          loadNewData(newData);
+          reloadBtn.classList.remove('visible');
+        } catch (e) {
+          alert('Failed: ' + e.message);
+        } finally {
+          reloadBtn.disabled = false;
+          reloadBtn.textContent = 'Reload';
         }
-        const newData = await resp.json();
-
-        // Update global data
-        data.meta = newData.meta;
-        data.nodes = newData.nodes;
-        data.links = newData.links;
-        selectedBase = newBase;
-        selectedBranch = newBranch;
-
-        // Update toolbar stats
-        document.getElementById('file-count').textContent = data.meta.totalFiles + ' files';
-        document.getElementById('additions').textContent = '+' + data.meta.totalAdditions;
-        document.getElementById('deletions').textContent = ' -' + data.meta.totalDeletions;
-
-        // Update branch selects with any new branches
-        populateBranchSelects(data.meta.availableBranches || [], selectedBase, selectedBranch);
-
-        // Rebuild adjacency
-        neighbors.clear();
-        data.links.forEach(link => {
-          const sid = typeof link.source === 'object' ? link.source.id : link.source;
-          const tid = typeof link.target === 'object' ? link.target.id : link.target;
-          if (!neighbors.has(sid)) neighbors.set(sid, new Set());
-          if (!neighbors.has(tid)) neighbors.set(tid, new Set());
-          neighbors.get(sid).add(tid);
-          neighbors.get(tid).add(sid);
-        });
-        nodeById.clear();
-        data.nodes.forEach(n => nodeById.set(n.id, n));
-
-        // Rebuild filter counts
-        typeCounts.clear(); groupCounts.clear(); statusCounts.clear();
-        visibleTypes.clear(); visibleGroups.clear(); visibleStatuses.clear();
-        data.nodes.forEach(n => {
-          typeCounts.set(n.fileType, (typeCounts.get(n.fileType) || 0) + 1);
-          groupCounts.set(n.group, (groupCounts.get(n.group) || 0) + 1);
-          statusCounts.set(n.status, (statusCounts.get(n.status) || 0) + 1);
-          visibleTypes.add(n.fileType);
-          visibleGroups.add(n.group);
-          visibleStatuses.add(n.status);
-        });
-
-        // Rebuild filter dropdowns
-        document.getElementById('filter-type-dropdown').innerHTML = '';
-        document.getElementById('filter-group-dropdown').innerHTML = '';
-        document.getElementById('filter-status-dropdown').innerHTML = '';
-        buildFilterDropdown(
-          document.getElementById('filter-type-dropdown'),
-          'Type', typeCounts, visibleTypes,
-          key => TYPE_COLOR[key] || null,
-          key => TYPE_LABEL[key] || key,
-          applyFilters
-        );
-        buildFilterDropdown(
-          document.getElementById('filter-group-dropdown'),
-          'Group', groupCounts, visibleGroups,
-          () => null, key => key, applyFilters
-        );
-        buildFilterDropdown(
-          document.getElementById('filter-status-dropdown'),
-          'Status', statusCounts, visibleStatuses,
-          key => STATUS[key] ? STATUS[key].border : '#8b949e',
-          key => key, applyFilters
-        );
-
-        // Reset clustering
-        expandedClusters.clear();
-
-        // Reload graph
-        applyFilters();
-        setTimeout(() => Graph.zoomToFit(400, 60), 500);
-
-        reloadBtn.classList.remove('visible');
-      } catch (e) {
-        alert('Failed to connect to server: ' + e.message);
-      } finally {
-        reloadBtn.disabled = false;
-        reloadBtn.textContent = 'Reload';
+        return;
       }
+
+      // No data available for this branch
+      alert('No pre-analyzed data for branch "' + newBranch + '".\nRe-run the analyzer to include it.');
     });
 
-    // If served, also fetch latest branches on load
+    // If served, fetch latest branches on load
     if (isServed) {
       fetch('/api/branches').then(r => r.json()).then(({ branches }) => {
         populateBranchSelects(branches, selectedBase, selectedBranch);

@@ -176,15 +176,48 @@ export function analyzeImports(repo: string, changedFiles: string[]): GraphLink[
   return links;
 }
 
+// ── Analyze all branches against a base ─────────────────────────────
+
+export function analyzeAllBranches(repo: string, base: string, primaryBranch: string, diffContent: boolean): Record<string, GraphData> {
+  const branches = getBranches(repo);
+  const results: Record<string, GraphData> = {};
+
+  // Primary branch gets full analysis (with diff content)
+  try {
+    results[primaryBranch] = analyze({ repo, base, branch: primaryBranch, diffContent });
+  } catch {
+    // primary branch must work
+    throw new Error(`Failed to analyze primary branch: ${primaryBranch}`);
+  }
+
+  // Other branches get lightweight analysis (no diff content to keep size down)
+  for (const branch of branches) {
+    if (branch === primaryBranch || branch === base || results[branch]) continue;
+    try {
+      const data = analyze({ repo, base, branch, diffContent: false });
+      results[branch] = data;
+    } catch {
+      // Skip branches that fail (e.g. no common ancestor)
+    }
+  }
+
+  return results;
+}
+
 // ── HTML generation ─────────────────────────────────────────────────
 
-export function generateHtml(data: GraphData): string {
+export function generateHtml(data: GraphData, allBranchData?: Record<string, GraphData>): string {
   const templatePath = path.join(__dirname, 'template.html');
   const template = fs.readFileSync(templatePath, 'utf-8');
   // Escape </ sequences to prevent closing the script tag prematurely
   const json = JSON.stringify(data).replace(/<\//g, '<\\/');
-  // Use a replacer function to avoid $ being interpreted as special replacement patterns
-  return template.replace('__GRAPH_DATA__', () => json);
+  const allJson = allBranchData
+    ? JSON.stringify(allBranchData).replace(/<\//g, '<\\/')
+    : '{}';
+  // Use replacer functions to avoid $ being interpreted as special replacement patterns
+  return template
+    .replace('__GRAPH_DATA__', () => json)
+    .replace('__ALL_BRANCH_DATA__', () => allJson);
 }
 
 // ── Main analyze function ───────────────────────────────────────────

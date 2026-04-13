@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 import { createServer } from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
-import { analyze, generateHtml, getBranches } from './analyze.js';
+import { analyze, analyzeAllBranches, generateHtml, getBranches } from './analyze.js';
 
 // ── CLI Args ────────────────────────────────────────────────────────
 
@@ -136,6 +136,12 @@ function main() {
     console.log(`Found ${graphData.nodes.length} changed files`);
     console.log(`Found ${graphData.links.length} import links`);
 
+    // Pre-analyze all other branches (lightweight, no diff content)
+    console.log('Analyzing other branches...');
+    const allBranchData = analyzeAllBranches(repo, graphData.meta.base, graphData.meta.branch, diffContent);
+    const branchCount = Object.keys(allBranchData).length;
+    console.log(`Pre-analyzed ${branchCount} branches for instant switching`);
+
     // Write output
     fs.mkdirSync(outDir, { recursive: true });
 
@@ -144,11 +150,10 @@ function main() {
     console.log(`Written: ${jsonPath}`);
 
     const htmlPath = path.join(outDir, 'graph.html');
-    fs.writeFileSync(htmlPath, generateHtml(graphData));
+    fs.writeFileSync(htmlPath, generateHtml(graphData, allBranchData));
     console.log(`Written: ${htmlPath}`);
 
     console.log('\nDone! Open output/graph.html in your browser.');
-    console.log('Tip: use --open to start a live server with branch switching.');
   } catch (err) {
     console.error((err as Error).message);
     process.exit(1);
