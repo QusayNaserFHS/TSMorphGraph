@@ -117,14 +117,15 @@ function main() {
     return;
   }
 
-  // Server mode
-  if (serve) {
+  // --open implies --serve (live branch switching requires a server)
+  if (serve || shouldOpen) {
     console.log(`Repository: ${repo}`);
     console.log(`Initial diff: ${base}...${branch}`);
     startServer({ repo, base, branch, diffContent, port });
     return;
   }
 
+  // Static output mode (no --open, no --serve)
   console.log(`Repository: ${repo}`);
   console.log(`Diff: ${base}...${branch}`);
   if (diffContent) console.log('Including diff content for each file');
@@ -146,20 +147,8 @@ function main() {
     fs.writeFileSync(htmlPath, generateHtml(graphData));
     console.log(`Written: ${htmlPath}`);
 
-    // Auto-open in browser
-    if (shouldOpen) {
-      const platform = process.platform;
-      const cmd = platform === 'darwin' ? 'open'
-        : platform === 'win32' ? 'start'
-        : 'xdg-open';
-      try {
-        execSync(`${cmd} "${htmlPath}"`);
-      } catch {
-        console.log('Could not auto-open browser. Open the file manually.');
-      }
-    }
-
     console.log('\nDone! Open output/graph.html in your browser.');
+    console.log('Tip: use --open to start a live server with branch switching.');
   } catch (err) {
     console.error((err as Error).message);
     process.exit(1);
