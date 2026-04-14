@@ -4,3 +4,4 @@ output/
 test-results/
 .nx/
 *.tgz
+output-astgrep/

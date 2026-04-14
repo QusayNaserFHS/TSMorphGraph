@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 import { createServer } from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
-import { analyze, analyzeAllBranches, generateHtml, getBranches, type AnalyzeEngine } from './analyze.js';
+import { analyze, analyzeAllBranches, generateHtml, getBranches } from './analyze.js';
 
 // ── CLI Args ────────────────────────────────────────────────────────
 
@@ -18,7 +18,6 @@ function parseArgs() {
   let open = false;
   let serve = false;
   let port = 3742;
-  let engine: AnalyzeEngine = 'ts-morph';
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--repo' && args[i + 1]) repo = path.resolve(args[++i]);
@@ -30,21 +29,20 @@ function parseArgs() {
     if (args[i] === '--open') open = true;
     if (args[i] === '--serve') serve = true;
     if (args[i] === '--port' && args[i + 1]) port = parseInt(args[++i]);
-    if (args[i] === '--engine' && args[i + 1]) engine = args[++i] as AnalyzeEngine;
   }
 
-  return { repo, base, branch, diffContent, listBranches, output, open, serve, port, engine };
+  return { repo, base, branch, diffContent, listBranches, output, open, serve, port };
 }
 
 // ── Server mode ─────────────────────────────────────────────────────
 
-function startServer(opts: { repo: string; base: string; branch: string; diffContent: boolean; port: number; engine: AnalyzeEngine }) {
+function startServer(opts: { repo: string; base: string; branch: string; diffContent: boolean; port: number }) {
   const { repo, port } = opts;
 
   // Initial analysis
   let currentBase = opts.base;
   let currentBranch = opts.branch;
-  let currentData = analyze({ repo, base: currentBase, branch: currentBranch, diffContent: opts.diffContent, engine: opts.engine });
+  let currentData = analyze({ repo, base: currentBase, branch: currentBranch, diffContent: opts.diffContent });
   let currentHtml = generateHtml(currentData);
 
   console.log(`Initial analysis: ${currentData.nodes.length} files, ${currentData.links.length} links`);
@@ -71,7 +69,7 @@ function startServer(opts: { repo: string; base: string; branch: string; diffCon
       try {
         currentBase = newBase;
         currentBranch = newBranch;
-        currentData = analyze({ repo, base: newBase, branch: newBranch, diffContent: withDiff, engine: opts.engine });
+        currentData = analyze({ repo, base: newBase, branch: newBranch, diffContent: withDiff });
         currentHtml = generateHtml(currentData);
         console.log(`  ${currentData.nodes.length} files, ${currentData.links.length} links`);
 
@@ -110,7 +108,7 @@ function startServer(opts: { repo: string; base: string; branch: string; diffCon
 // ── Main ────────────────────────────────────────────────────────────
 
 function main() {
-  const { repo, base, branch, diffContent, listBranches, output: outDir, open: shouldOpen, serve, port, engine } = parseArgs();
+  const { repo, base, branch, diffContent, listBranches, output: outDir, open: shouldOpen, serve, port } = parseArgs();
 
   // List branches mode
   if (listBranches) {
@@ -123,18 +121,17 @@ function main() {
   if (serve || shouldOpen) {
     console.log(`Repository: ${repo}`);
     console.log(`Initial diff: ${base}...${branch}`);
-    startServer({ repo, base, branch, diffContent, port, engine });
+    startServer({ repo, base, branch, diffContent, port });
     return;
   }
 
   // Static output mode (no --open, no --serve)
   console.log(`Repository: ${repo}`);
   console.log(`Diff: ${base}...${branch}`);
-  console.log(`Engine: ${engine}`);
   if (diffContent) console.log('Including diff content for each file');
 
   try {
-    const graphData = analyze({ repo, base, branch, diffContent, engine });
+    const graphData = analyze({ repo, base, branch, diffContent });
 
     console.log(`Found ${graphData.nodes.length} changed files`);
     console.log(`Found ${graphData.links.length} import links`);

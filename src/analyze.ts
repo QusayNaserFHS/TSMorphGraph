@@ -4,14 +4,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 import type { GraphNode, GraphLink, GraphData } from './types.js';
-import { analyzeImportsAstGrep } from './analyze-astgrep.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ── Public types ────────────────────────────────────────────────────
-
-export type AnalyzeEngine = 'ts-morph' | 'ast-grep';
 
 export interface AnalyzeOptions {
   repo: string;
@@ -19,7 +16,6 @@ export interface AnalyzeOptions {
   branch: string;
   diffContent?: boolean;
   output?: string;
-  engine?: AnalyzeEngine;
 }
 
 // ── Git helpers ─────────────────────────────────────────────────────
@@ -227,7 +223,7 @@ export function generateHtml(data: GraphData, allBranchData?: Record<string, Gra
 // ── Main analyze function ───────────────────────────────────────────
 
 export function analyze(options: AnalyzeOptions): GraphData {
-  const { repo, base: baseArg, branch, diffContent, engine = 'ts-morph' } = options;
+  const { repo, base: baseArg, branch, diffContent } = options;
 
   if (!fs.existsSync(path.join(repo, '.git'))) {
     throw new Error(`Not a git repository: ${repo}`);
@@ -271,9 +267,7 @@ export function analyze(options: AnalyzeOptions): GraphData {
     nodes.push(node);
   }
 
-  const links = engine === 'ast-grep'
-    ? analyzeImportsAstGrep(repo, changedFiles)
-    : analyzeImports(repo, changedFiles);
+  const links = analyzeImports(repo, changedFiles);
 
   // Gather available branches
   const availableBranches = getBranches(repo);
