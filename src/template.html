@@ -527,7 +527,7 @@
           <div id="dp-violations-list"></div>
         </div>
         <div class="dp-diff-wrap">
-          <div class="rp-header"><span>Diff</span></div>
+          <div class="rp-header"><span id="dp-diff-header">Diff</span></div>
           <div class="diff-search" id="diff-search">
             <input type="text" id="diff-search-input" placeholder="Search in diff..." />
             <span class="diff-search-count" id="diff-search-count"></span>
@@ -1207,13 +1207,14 @@
         }
         ctx.restore();
       })
-      .nodePointerAreaPaint((node, color, ctx) => {
-        const r = node.__isCluster ? Math.sqrt(node.__childCount) * 4 + 16 : Math.sqrt(Math.max(node.totalChanges || 1, 1)) * 1.2 + 10;
+      .nodePointerAreaPaint((node, color, ctx, globalScale) => {
+        const baseR = node.__isCluster ? Math.sqrt(node.__childCount) * 4 + 12 : Math.sqrt(Math.max(node.totalChanges || 1, 1)) * 1.2 + 5;
+        const r = Math.max(baseR + 4, 14 / globalScale); // at least 14 screen pixels
         ctx.fillStyle = color; ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, 2 * Math.PI); ctx.fill();
       })
       .onNodeHover(node => {
         hoveredNode = node;
-        updateHighlight(node || selectedNode);
+        graphContainer.style.cursor = node ? 'pointer' : 'default';
       })
       .onNodeClick(node => {
         if (node.__isCluster) { const cx = node.x, cy = node.y; expandCluster(node.group); Graph.centerAt(cx, cy, 400); return; }
@@ -1414,6 +1415,7 @@
       }
 
       // Diff — always visible, no toggle
+      document.getElementById('dp-diff-header').textContent = 'Diff — ' + node.name;
       const diffContent = document.getElementById('dp-diff-content');
       if (node.diffContent) {
         renderDiff(node.diffContent, diffContent, node.fileType);
