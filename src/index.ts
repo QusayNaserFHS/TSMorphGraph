@@ -1,3 +1,3 @@
-export { analyze, analyzeAllBranches, generateHtml, getBranches } from './analyze.js';
+export { analyze, analyzeAllBranches, generateHtml, getBranches, loadArchRules, detectViolations } from './analyze.js';
 export type { AnalyzeOptions } from './analyze.js';
-export type { GraphData, GraphNode, GraphLink } from './types.js';
+export type { GraphData, GraphNode, GraphLink, ArchRules } from './types.js';

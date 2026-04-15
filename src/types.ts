@@ -16,6 +16,23 @@ export interface GraphNode {
 export interface GraphLink {
   source: string;
   target: string;
+  violation?: string;      // rule name if this link is a violation
+  violationType?: string;  // 'layer' | 'circular' | 'forbidden'
+}
+
+export interface ArchRule {
+  name: string;
+  type: 'layer' | 'forbidden';
+  from: string;
+  to: string;
+  description?: string;
+}
+
+export interface ArchRules {
+  layers?: string[];
+  rules?: Record<string, { canImportFrom: string[] }>;
+  forbidden?: Array<{ from: string; to: string; description?: string }>;
+  detectCircular?: boolean;
 }
 
 export interface GraphData {
@@ -31,4 +48,6 @@ export interface GraphData {
   };
   nodes: GraphNode[];
   links: GraphLink[];
+  violations?: GraphLink[];
+  archRules?: ArchRules;
 }

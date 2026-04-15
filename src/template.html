@@ -381,6 +381,24 @@
     .toggle-switch input:checked + .toggle-slider { background: #1f6feb; }
     .toggle-switch input:checked + .toggle-slider::before { transform: translateX(14px); background: #fff; }
 
+    /* ── Rules panel ──────────────────────────────────────────────── */
+
+    .rule-item {
+      padding: 6px 8px; border-radius: 4px; margin-bottom: 4px;
+      display: flex; align-items: flex-start; gap: 8px; font-size: 11px;
+    }
+    .rule-item label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; flex: 1; }
+    .rule-item input[type="checkbox"] { margin-top: 2px; accent-color: #da3633; }
+    .rule-type {
+      font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: 600;
+      text-transform: uppercase; flex-shrink: 0;
+    }
+    .rule-type-layer { background: #d2992233; color: #d29922; }
+    .rule-type-circular { background: #da363333; color: #f85149; }
+    .rule-type-forbidden { background: #da363333; color: #f85149; }
+    .rule-desc { color: #c9d1d9; line-height: 1.4; }
+    .rule-count { color: #484f58; font-size: 10px; margin-left: auto; white-space: nowrap; }
+
     .legend-dot {
       width: 10px; height: 10px; border-radius: 50%; display: inline-block;
       margin-right: 4px; vertical-align: middle;
@@ -447,6 +465,29 @@
         <div class="spacing-slider">
           <span class="spacing-label">Spacing</span>
           <input type="range" id="spacing-slider" min="1" max="10" value="3" />
+        </div>
+        <div id="violations-toggle" class="cluster-toggle" style="display:none">
+          <span class="cluster-toggle-label" style="display:flex;align-items:center;gap:4px">
+            Violations <span id="violations-count" style="background:#da3633;color:#fff;font-size:9px;padding:0 5px;border-radius:8px;line-height:16px"></span>
+          </span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="show-violations" checked />
+            <span class="toggle-slider"></span>
+          </label>
+          <button id="violations-rules-btn" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px">Rules</button>
+        </div>
+      </div>
+    </div>
+
+      <!-- Rules panel (floating) -->
+      <div id="rules-panel" style="display:none;position:absolute;bottom:12px;left:12px;z-index:50;background:#161b22dd;border:1px solid #30363d;border-radius:8px;padding:12px;min-width:280px;max-width:400px;max-height:50vh;overflow-y:auto;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(0,0,0,0.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:12px;font-weight:600;color:#f0f6fc">Architecture Rules</span>
+          <button id="rules-panel-close" style="background:none;border:none;color:#8b949e;cursor:pointer;font-size:14px">&times;</button>
+        </div>
+        <div id="rules-list" style="font-size:11px"></div>
+        <div id="rules-empty" style="color:#484f58;font-size:11px;text-align:center;padding:12px">
+          No rules configured.<br>Add a <code style="background:#21262d;padding:1px 4px;border-radius:3px">.tsmorph-rules.json</code> to your repo.
         </div>
       </div>
     </div>
@@ -525,6 +566,32 @@
   <script>
     const data = JSON.parse(document.getElementById('graph-data').textContent);
     const allBranchData = JSON.parse(document.getElementById('all-branch-data').textContent || '{}');
+
+    // ── Violations state ──────────────────────────────────────────
+
+    const violations = data.violations || [];
+    const archRules = data.archRules || {};
+    let showViolations = true;
+    const violationEdgeKeys = new Set();
+    const enabledViolationTypes = new Set(['layer', 'circular', 'forbidden']);
+
+    // Build violation lookup: "source->target" => violation info
+    const violationMap = new Map();
+    violations.forEach(v => {
+      const key = v.source + '->' + v.target;
+      violationEdgeKeys.add(key);
+      if (!violationMap.has(key)) violationMap.set(key, []);
+      violationMap.get(key).push(v);
+    });
+
+    function isViolationLink(link) {
+      if (!showViolations) return false;
+      const sid = typeof link.source === 'object' ? link.source.id : link.source;
+      const tid = typeof link.target === 'object' ? link.target.id : link.target;
+      const vs = violationMap.get(sid + '->' + tid);
+      if (!vs) return false;
+      return vs.some(v => enabledViolationTypes.has(v.violationType));
+    }
 
     // ── Populate toolbar ──────────────────────────────────────────
 
@@ -1071,11 +1138,11 @@
       .graphData(data)
       .nodeId('id')
       .backgroundColor('#0d1117')
-      .linkColor(link => highlightLinks.has(link) ? '#58a6ff' : 'rgba(88,166,255,0.15)')
-      .linkWidth(link => highlightLinks.has(link) ? 2 : 0.8)
+      .linkColor(link => isViolationLink(link) ? '#f85149' : highlightLinks.has(link) ? '#58a6ff' : 'rgba(88,166,255,0.15)')
+      .linkWidth(link => isViolationLink(link) ? 2.5 : highlightLinks.has(link) ? 2 : 0.8)
       .linkDirectionalArrowLength(6)
       .linkDirectionalArrowRelPos(1)
-      .linkDirectionalArrowColor(link => highlightLinks.has(link) ? '#58a6ff' : 'rgba(88,166,255,0.3)')
+      .linkDirectionalArrowColor(link => isViolationLink(link) ? '#f85149' : highlightLinks.has(link) ? '#58a6ff' : 'rgba(88,166,255,0.3)')
       .linkCurvature(0.15)
       .nodeCanvasObject((node, ctx, globalScale) => {
         const s = STATUS[node.status] || STATUS.modified;
@@ -1170,6 +1237,96 @@
       Graph.d3Force('charge').strength(strength).distanceMax(maxDist);
       Graph.d3ReheatSimulation();
     });
+
+    // ── Violations UI ──────────────────────────────────────────────
+
+    if (violations.length > 0) {
+      document.getElementById('violations-toggle').style.display = 'flex';
+      document.getElementById('violations-count').textContent = violations.length;
+      document.getElementById('rules-empty').style.display = 'none';
+    }
+
+    // Toggle violations visibility
+    document.getElementById('show-violations').addEventListener('change', (e) => {
+      showViolations = e.target.checked;
+      // Force link re-render
+      Graph.linkColor(Graph.linkColor());
+    });
+
+    // Rules panel toggle
+    const rulesPanel = document.getElementById('rules-panel');
+    document.getElementById('violations-rules-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      rulesPanel.style.display = rulesPanel.style.display === 'none' ? 'block' : 'none';
+    });
+    document.getElementById('rules-panel-close').addEventListener('click', () => {
+      rulesPanel.style.display = 'none';
+    });
+
+    // Render rules list
+    function renderRulesList() {
+      const list = document.getElementById('rules-list');
+      list.innerHTML = '';
+
+      // Group violations by type and rule description
+      const groups = new Map();
+      violations.forEach(v => {
+        const key = v.violationType + ':' + v.violation;
+        if (!groups.has(key)) groups.set(key, { type: v.violationType, desc: v.violation, count: 0 });
+        groups.get(key).count++;
+      });
+
+      if (groups.size === 0) return;
+      document.getElementById('rules-empty').style.display = 'none';
+
+      // Layer rules from config
+      if (archRules.rules) {
+        const header = document.createElement('div');
+        header.style.cssText = 'font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px;';
+        header.textContent = 'Layer Rules';
+        list.appendChild(header);
+
+        Object.entries(archRules.rules).forEach(([group, rule]) => {
+          const div = document.createElement('div');
+          div.style.cssText = 'font-size:11px;color:#8b949e;padding:2px 0;';
+          div.textContent = group + ' \u2192 can import from: ' + rule.canImportFrom.join(', ');
+          list.appendChild(div);
+        });
+      }
+
+      // Detected violations
+      const vHeader = document.createElement('div');
+      vHeader.style.cssText = 'font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 4px;';
+      vHeader.textContent = 'Detected Violations (' + violations.length + ')';
+      list.appendChild(vHeader);
+
+      [...groups.values()].sort((a, b) => b.count - a.count).forEach(g => {
+        const item = document.createElement('div');
+        item.className = 'rule-item';
+
+        const typeClass = g.type === 'layer' ? 'rule-type-layer' : g.type === 'circular' ? 'rule-type-circular' : 'rule-type-forbidden';
+        item.innerHTML =
+          '<label>' +
+          '<input type="checkbox" checked data-type="' + g.type + '" />' +
+          '<span class="rule-type ' + typeClass + '">' + g.type + '</span>' +
+          '<span class="rule-desc">' + escapeHtml(g.desc) + '</span>' +
+          '</label>' +
+          '<span class="rule-count">' + g.count + '</span>';
+
+        item.querySelector('input').addEventListener('change', (e) => {
+          // Individual rule toggle — for now toggle by type
+          if (e.target.checked) enabledViolationTypes.add(g.type);
+          else enabledViolationTypes.delete(g.type);
+          document.getElementById('violations-count').textContent =
+            violations.filter(v => enabledViolationTypes.has(v.violationType)).length;
+          Graph.linkColor(Graph.linkColor());
+        });
+
+        list.appendChild(item);
+      });
+    }
+
+    renderRulesList();
 
     // Resize graph when left pane resizes
     new ResizeObserver(() => {

@@ -3,7 +3,7 @@ import { Project } from 'ts-morph';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
-import type { GraphNode, GraphLink, GraphData } from './types.js';
+import type { GraphNode, GraphLink, GraphData, ArchRules } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -176,6 +176,122 @@ export function analyzeImports(repo: string, changedFiles: string[]): GraphLink[
   return links;
 }
 
+// ── Architecture rules + violation detection ────────────────────────
+
+export function loadArchRules(repo: string): ArchRules | undefined {
+  const configPath = path.join(repo, '.tsmorph-rules.json');
+  if (!fs.existsSync(configPath)) return undefined;
+  try {
+    return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  } catch {
+    return undefined;
+  }
+}
+
+export function detectViolations(
+  links: GraphLink[],
+  nodes: GraphNode[],
+  rules: ArchRules,
+): GraphLink[] {
+  const violations: GraphLink[] = [];
+  const nodeGroup = new Map<string, string>();
+  nodes.forEach(n => nodeGroup.set(n.id, n.group));
+
+  // Layer violations: check if source group is allowed to import from target group
+  if (rules.rules) {
+    for (const link of links) {
+      const srcGroup = nodeGroup.get(link.source);
+      const tgtGroup = nodeGroup.get(link.target);
+      if (!srcGroup || !tgtGroup || srcGroup === tgtGroup) continue;
+
+      const allowed = rules.rules[srcGroup]?.canImportFrom;
+      if (allowed && !allowed.includes(tgtGroup)) {
+        violations.push({
+          source: link.source,
+          target: link.target,
+          violation: `${srcGroup} cannot import from ${tgtGroup}`,
+          violationType: 'layer',
+        });
+      }
+    }
+  }
+
+  // Forbidden imports
+  if (rules.forbidden) {
+    for (const link of links) {
+      const srcGroup = nodeGroup.get(link.source);
+      const tgtGroup = nodeGroup.get(link.target);
+      for (const f of rules.forbidden) {
+        const fromMatch = srcGroup === f.from || link.source.includes(f.from);
+        const toMatch = tgtGroup === f.to || link.target.includes(f.to);
+        if (fromMatch && toMatch) {
+          violations.push({
+            source: link.source,
+            target: link.target,
+            violation: f.description || `Forbidden: ${f.from} -> ${f.to}`,
+            violationType: 'forbidden',
+          });
+        }
+      }
+    }
+  }
+
+  // Circular dependency detection
+  if (rules.detectCircular !== false) {
+    const adj = new Map<string, Set<string>>();
+    for (const link of links) {
+      if (!adj.has(link.source)) adj.set(link.source, new Set());
+      adj.get(link.source)!.add(link.target);
+    }
+
+    // Find cycles using DFS
+    const visited = new Set<string>();
+    const stack = new Set<string>();
+
+    function dfs(node: string, path: string[]): string[][] {
+      const cycles: string[][] = [];
+      if (stack.has(node)) {
+        const cycleStart = path.indexOf(node);
+        if (cycleStart >= 0) cycles.push(path.slice(cycleStart));
+        return cycles;
+      }
+      if (visited.has(node)) return cycles;
+      visited.add(node);
+      stack.add(node);
+      for (const next of adj.get(node) || []) {
+        cycles.push(...dfs(next, [...path, node]));
+      }
+      stack.delete(node);
+      return cycles;
+    }
+
+    const allNodes = new Set([...adj.keys()]);
+    const seenCycleEdges = new Set<string>();
+    for (const node of allNodes) {
+      visited.clear();
+      stack.clear();
+      const cycles = dfs(node, []);
+      for (const cycle of cycles) {
+        for (let i = 0; i < cycle.length; i++) {
+          const from = cycle[i];
+          const to = cycle[(i + 1) % cycle.length];
+          const key = `${from}->${to}`;
+          if (seenCycleEdges.has(key)) continue;
+          seenCycleEdges.add(key);
+          violations.push({
+            source: from,
+            target: to,
+            violation: `Circular: ${cycle.map(c => c.split('/').pop()).join(' -> ')}`,
+            violationType: 'circular',
+          });
+        }
+      }
+    }
+  }
+
+  return violations;
+}
+
 // ── Analyze all branches against a base ─────────────────────────────
 
 export function analyzeAllBranches(repo: string, base: string, primaryBranch: string, diffContent: boolean): Record<string, GraphData> {
@@ -272,6 +388,10 @@ export function analyze(options: AnalyzeOptions): GraphData {
   // Gather available branches
   const availableBranches = getBranches(repo);
 
+  // Load architecture rules and detect violations
+  const archRules = loadArchRules(repo);
+  const violations = archRules ? detectViolations(links, nodes, archRules) : [];
+
   return {
     meta: {
       branch: branchName,
@@ -285,5 +405,7 @@ export function analyze(options: AnalyzeOptions): GraphData {
     },
     nodes,
     links,
+    violations,
+    archRules,
   };
 }
