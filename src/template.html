@@ -431,6 +431,20 @@
         <span class="toggle-slider"></span>
       </label>
     </div>
+    <div id="violations-toggle" class="cluster-toggle" style="display:none">
+      <span class="cluster-toggle-label" style="display:flex;align-items:center;gap:4px">
+        Violations <span id="violations-count" style="background:#da3633;color:#fff;font-size:9px;padding:0 5px;border-radius:8px;line-height:16px"></span>
+      </span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="show-violations" checked />
+        <span class="toggle-slider"></span>
+      </label>
+      <button id="violations-rules-btn" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px">Rules</button>
+    </div>
+    <div class="spacing-slider">
+      <span class="spacing-label">Spacing</span>
+      <input type="range" id="spacing-slider" min="1" max="10" value="3" />
+    </div>
     <div class="right">
       <button id="switch-viz-btn" style="display:none;background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap">Switch to CodeAtlas</button>
       <span id="fps" style="font-family:'SF Mono',Consolas,monospace;font-size:11px;color:#8b949e;min-width:55px;text-align:right"></span>
@@ -462,19 +476,12 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <div class="spacing-slider">
-          <span class="spacing-label">Spacing</span>
-          <input type="range" id="spacing-slider" min="1" max="10" value="3" />
-        </div>
-        <div id="violations-toggle" class="cluster-toggle" style="display:none">
-          <span class="cluster-toggle-label" style="display:flex;align-items:center;gap:4px">
-            Violations <span id="violations-count" style="background:#da3633;color:#fff;font-size:9px;padding:0 5px;border-radius:8px;line-height:16px"></span>
-          </span>
+        <div id="violations-only-toggle" class="cluster-toggle" style="display:none">
+          <span class="cluster-toggle-label" style="color:#f85149">Violations Only</span>
           <label class="toggle-switch">
-            <input type="checkbox" id="show-violations" checked />
+            <input type="checkbox" id="violations-only" />
             <span class="toggle-slider"></span>
           </label>
-          <button id="violations-rules-btn" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px">Rules</button>
         </div>
       </div>
       <!-- Rules panel (floating inside left pane) -->
@@ -930,15 +937,30 @@
     buildFilterDropdown(document.getElementById('filter-status-dropdown'), 'Status', statusCounts, visibleStatuses, key => STATUS[key] ? STATUS[key].border : '#8b949e', key => key, applyFilters);
 
     let connectedOnly = false;
+    let violationsOnly = false;
+
+    // Build set of node IDs involved in violations
+    const violationNodeIds = new Set();
+    violations.forEach(v => { violationNodeIds.add(v.source); violationNodeIds.add(v.target); });
 
     function isNodeVisible(node) {
       if (!visibleTypes.has(node.fileType) || !visibleGroups.has(node.group) || !visibleStatuses.has(node.status)) return false;
       if (connectedOnly && !neighbors.has(node.id)) return false;
+      if (violationsOnly && !violationNodeIds.has(node.id)) return false;
       return true;
     }
 
     document.getElementById('connected-toggle').addEventListener('change', (e) => {
       connectedOnly = e.target.checked;
+      applyFilters();
+    });
+
+    // Show "Violations Only" toggle when violations exist
+    if (violations.length > 0) {
+      document.getElementById('violations-only-toggle').style.display = 'flex';
+    }
+    document.getElementById('violations-only').addEventListener('change', (e) => {
+      violationsOnly = e.target.checked;
       applyFilters();
     });
 
@@ -1186,20 +1208,18 @@
         ctx.restore();
       })
       .nodePointerAreaPaint((node, color, ctx) => {
-        const r = node.__isCluster ? Math.sqrt(node.__childCount) * 4 + 12 : Math.sqrt(Math.max(node.totalChanges || 1, 1)) * 1.2 + 5;
-        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(node.x, node.y, r + 4, 0, 2 * Math.PI); ctx.fill();
+        const r = node.__isCluster ? Math.sqrt(node.__childCount) * 4 + 16 : Math.sqrt(Math.max(node.totalChanges || 1, 1)) * 1.2 + 10;
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, 2 * Math.PI); ctx.fill();
       })
       .onNodeHover(node => {
         hoveredNode = node;
         updateHighlight(node || selectedNode);
       })
       .onNodeClick(node => {
-        if (node.__isCluster) { const cx = node.x, cy = node.y; expandCluster(node.group); Graph.centerAt(cx, cy, 400); Graph.zoom(2, 400); return; }
+        if (node.__isCluster) { const cx = node.x, cy = node.y; expandCluster(node.group); Graph.centerAt(cx, cy, 400); return; }
         selectedNode = node;
         updateHighlight(node);
         showDetail(node);
-        Graph.centerAt(node.x, node.y, 400);
-        Graph.zoom(2, 400);
       })
       .onBackgroundClick(() => { selectedNode = null; updateHighlight(null); closeDetail(); })
       .onZoom((() => {
@@ -1223,6 +1243,7 @@
           }, 300);
         };
       })())
+      .enableNodeDrag(false)
       .cooldownTime(8000)
       .d3AlphaDecay(0.05)
       .d3VelocityDecay(0.65);
