@@ -59,13 +59,18 @@
 
     /* ── Search ──────────────────────────────────────────────────── */
 
+    #search-filter-bar {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      z-index: 50; display: flex; align-items: center; gap: 6px;
+    }
     #search-container {
       position: relative; display: flex; align-items: center;
     }
     #search-input {
-      background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
-      color: #c9d1d9; font-size: 12px; padding: 4px 8px 4px 26px;
-      width: 200px; outline: none; font-family: inherit;
+      background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+      color: #c9d1d9; font-size: 13px; padding: 6px 10px 6px 30px;
+      width: 280px; outline: none; font-family: inherit;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
     #search-input:focus { border-color: #58a6ff; }
     #search-input::placeholder { color: #484f58; }
@@ -101,10 +106,8 @@
     /* ── Filter bar ──────────────────────────────────────────────── */
 
     #filter-bar {
-      position: fixed; top: 44px; left: 0; right: 0; z-index: 99;
-      background: #161b22ee; border-bottom: 1px solid #30363d;
-      padding: 6px 16px; display: flex; align-items: center; gap: 10px;
-      font-size: 11px; backdrop-filter: blur(8px);
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px;
     }
 
     /* ── Filter dropdown ─────────────────────────────────────────── */
@@ -113,10 +116,11 @@
       position: relative; display: inline-block;
     }
     .filter-trigger {
-      background: #21262d; border: 1px solid #30363d; border-radius: 6px;
+      background: #161b22dd; border: 1px solid #30363d; border-radius: 6px;
       padding: 4px 10px; cursor: pointer; color: #c9d1d9; font-size: 12px;
       user-select: none; display: flex; align-items: center; gap: 6px;
-      white-space: nowrap;
+      white-space: nowrap; backdrop-filter: blur(8px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
     .filter-trigger:hover { border-color: #484f58; }
     .filter-trigger.open { border-color: #58a6ff; }
@@ -174,9 +178,22 @@
     .filter-option-count { color: #484f58; font-size: 10px; }
     .filter-option-hidden { display: none; }
 
-    /* ── Graph ───────────────────────────────────────────────────── */
+    /* ── Split layout ────────────────────────────────────────────── */
 
-    #graph { position: absolute; top: 74px; left: 0; right: 0; bottom: 0; }
+    #main-container {
+      position: fixed; top: 44px; left: 0; right: 0; bottom: 0;
+      display: flex;
+    }
+    #left-pane {
+      width: 63%; height: 100%; position: relative; overflow: hidden;
+    }
+    #graph { width: 100%; height: 100%; }
+    #right-pane {
+      width: 37%; height: 100%;
+      background: #161b22; border-left: 1px solid #30363d;
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
 
     /* ── Tooltip ─────────────────────────────────────────────────── */
 
@@ -194,38 +211,38 @@
       background: #21262d; display: inline-block; padding: 1px 6px; border-radius: 4px;
     }
 
-    /* ── FPS counter ─────────────────────────────────────────────── */
+    /* ── Right pane sections ─────────────────────────────────────── */
 
-    #frame-graph {
-      position: fixed; top: 80px; right: 16px; z-index: 150;
-      background: rgba(22,27,34,0.85); border: 1px solid #30363d; border-radius: 6px;
-      padding: 6px 8px 4px 8px;
+    .rp-section {
+      padding: 12px 14px; border-bottom: 1px solid #21262d;
     }
-    #frame-graph canvas { display: block; }
-    #frame-graph .fg-label {
-      font-size: 9px; color: #484f58; font-family: 'SF Mono', Consolas, monospace;
-      display: flex; justify-content: space-between; margin-top: 2px;
+    .rp-section:last-child { border-bottom: none; }
+    .rp-header {
+      font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 6px 0; display: flex; align-items: center; justify-content: space-between;
     }
+    .rp-header.collapsible {
+      cursor: pointer; user-select: none;
+    }
+    .rp-header.collapsible:hover { color: #c9d1d9; }
+    .rp-header .collapse-arrow {
+      font-size: 10px; transition: transform 0.2s; color: #484f58;
+    }
+    .rp-header.collapsible:hover .collapse-arrow { color: #8b949e; }
+    .rp-body { overflow: hidden; transition: max-height 0.2s ease; }
+    .rp-body.collapsed { max-height: 0 !important; padding-top: 0; padding-bottom: 0; }
 
-    /* ── Detail panel ────────────────────────────────────────────── */
 
-    #detail-panel {
-      position: fixed; right: 16px; top: 140px; z-index: 150;
-      background: #161b22; border: 1px solid #30363d; border-radius: 8px;
-      padding: 16px; width: 340px; max-height: calc(100vh - 160px);
-      overflow-y: auto; display: none;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    }
-    #detail-panel .dp-close {
-      position: absolute; top: 8px; right: 10px;
-      background: none; border: none; color: #8b949e; cursor: pointer; font-size: 16px;
-    }
-    #detail-panel .dp-close:hover { color: #f0f6fc; }
-    #detail-panel h3 { font-size: 14px; color: #f0f6fc; margin-bottom: 4px; padding-right: 24px; }
-    #detail-panel .dp-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+
+    /* ── Detail panel (in right pane) ────────────────────────────── */
+
+    #detail-panel { display: none; flex-direction: column; flex: 1; min-height: 0; }
+    #detail-panel.visible { display: flex; }
+    #detail-panel h3 { font-size: 14px; color: #f0f6fc; margin-bottom: 4px; }
+    #detail-panel .dp-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; }
     #detail-panel .dp-label { color: #8b949e; }
     #detail-panel .dp-value { color: #c9d1d9; font-family: monospace; }
-    #detail-panel .dp-path { font-size: 11px; color: #8b949e; font-family: monospace; word-break: break-all; margin-bottom: 8px; }
+    #detail-panel .dp-path { font-size: 11px; color: #8b949e; font-family: monospace; word-break: break-all; margin-bottom: 6px; }
     .dp-status-badge {
       display: inline-block; font-size: 10px; padding: 1px 8px; border-radius: 10px;
       font-weight: 600; margin-left: 6px; vertical-align: middle;
@@ -234,38 +251,118 @@
     .dp-status-modified { background: rgba(88,166,255,0.2); color: #58a6ff; }
     .dp-status-deleted { background: rgba(248,81,73,0.2); color: #f85149; }
     .dp-status-renamed { background: rgba(210,153,34,0.2); color: #d29922; }
-    #detail-panel .dp-connections { margin-top: 10px; border-top: 1px solid #21262d; padding-top: 8px; }
+    #detail-panel .dp-connections { margin-top: 8px; border-top: 1px solid #21262d; padding-top: 6px; }
     .dp-conn-item {
-      font-size: 11px; color: #58a6ff; padding: 3px 0; font-family: monospace;
+      font-size: 11px; color: #58a6ff; padding: 2px 0; font-family: monospace;
       cursor: pointer;
     }
     .dp-conn-item:hover { color: #79c0ff; text-decoration: underline; }
 
-    /* ── Diff viewer ─────────────────────────────────────────────── */
+    /* ── Diff viewer (in right pane, fills remaining space) ───────── */
 
-    .dp-diff-section { margin-top: 10px; border-top: 1px solid #21262d; padding-top: 8px; }
-    .dp-diff-toggle {
-      background: none; border: 1px solid #30363d; border-radius: 4px;
-      color: #8b949e; font-size: 11px; padding: 2px 8px; cursor: pointer;
-      margin-top: 4px;
+    .dp-diff-wrap {
+      flex: 1; min-height: 0; display: flex; flex-direction: column;
+      margin-top: 8px; border-top: 1px solid #21262d; padding: 8px 14px 0 14px;
     }
-    .dp-diff-toggle:hover { color: #c9d1d9; border-color: #484f58; }
+    .diff-search {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    }
+    .diff-search input {
+      flex: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 4px;
+      color: #c9d1d9; font-size: 11px; padding: 3px 8px; outline: none;
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+    .diff-search input:focus { border-color: #58a6ff; }
+    .diff-search input::placeholder { color: #484f58; }
+    .diff-search-count { font-size: 10px; color: #484f58; white-space: nowrap; }
+    .diff-search-nav {
+      background: none; border: 1px solid #30363d; border-radius: 3px;
+      color: #8b949e; font-size: 10px; padding: 1px 5px; cursor: pointer; line-height: 16px;
+    }
+    .diff-search-nav:hover { color: #c9d1d9; border-color: #484f58; }
     .diff-viewer {
       background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
       padding: 0; font-family: 'SF Mono', Consolas, monospace; font-size: 11px;
-      max-height: 300px; overflow: auto; margin-top: 6px; line-height: 1.6;
+      flex: 1; overflow: auto; line-height: 1.6; min-height: 100px;
     }
-    .diff-line { padding: 0 8px; white-space: pre; display: block; }
+    .diff-line {
+      padding: 0 8px 0 0; white-space: pre; display: flex;
+    }
+    .diff-line-num {
+      display: inline-block; width: 40px; min-width: 40px; text-align: right;
+      padding-right: 8px; color: #484f58; user-select: none; flex-shrink: 0;
+      border-right: 1px solid #21262d; margin-right: 8px;
+    }
+    .diff-line-text { flex: 1; }
     .diff-line-add { background: rgba(63,185,80,0.1); color: #3fb950; }
     .diff-line-del { background: rgba(248,81,73,0.1); color: #f85149; }
     .diff-line-hunk { background: rgba(56,58,89,0.3); color: #8b949e; }
     .diff-line-ctx { color: #8b949e; }
+    .diff-line-highlight { background: rgba(210,153,34,0.25) !important; }
+    .diff-word-add { background: rgba(63,185,80,0.3); border-radius: 2px; padding: 0 1px; }
+    .diff-word-del { background: rgba(248,81,73,0.3); border-radius: 2px; padding: 0 1px; }
+    .diff-fold {
+      padding: 4px 8px; color: #58a6ff; background: #161b22; cursor: pointer;
+      font-size: 11px; text-align: center; border-top: 1px dashed #21262d; border-bottom: 1px dashed #21262d;
+      user-select: none;
+    }
+    .diff-fold:hover { background: #1c2128; color: #79c0ff; }
+    .diff-empty { color: #484f58; font-size: 12px; padding: 20px; text-align: center; font-family: inherit; }
 
-    /* ── Cluster toggle ───────────────────────────────────────────── */
+    /* ── Right-click context menu ─────────────────────────────────── */
+
+    #ctx-menu {
+      position: fixed; display: none; z-index: 400;
+      background: #1c2128; border: 1px solid #30363d; border-radius: 8px;
+      padding: 4px 0; min-width: 180px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .ctx-item {
+      padding: 6px 14px; font-size: 12px; color: #c9d1d9; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ctx-item:hover { background: #30363d; }
+    .ctx-item-icon { color: #8b949e; font-size: 11px; width: 14px; text-align: center; }
+    .ctx-sep { height: 1px; background: #21262d; margin: 4px 0; }
+
+    /* ── Resizable split handle ───────────────────────────────────── */
+
+    #split-handle {
+      width: 4px; cursor: col-resize; background: transparent;
+      flex-shrink: 0; position: relative; z-index: 10;
+    }
+    #split-handle:hover, #split-handle.dragging { background: #58a6ff; }
+    #split-handle::after {
+      content: ''; position: absolute; top: 0; bottom: 0; left: -3px; right: -3px;
+    }
+
+    /* ── Empty state ─────────────────────────────────────────────── */
+
+    #empty-state {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      color: #484f58; text-align: center; padding: 40px 20px;
+    }
+    #empty-state .icon { font-size: 32px; margin-bottom: 8px; }
+    #empty-state .msg { font-size: 13px; line-height: 1.5; }
+    #empty-state .kbd { font-size: 10px; background: #21262d; border: 1px solid #30363d; border-radius: 3px; padding: 1px 5px; font-family: 'SF Mono', Consolas, monospace; }
+
+    /* ── Cluster toggle ──────────────────────────────────────────── */
 
     .cluster-toggle {
-      display: flex; align-items: center; gap: 6px; margin-left: auto;
+      display: flex; align-items: center; gap: 6px;
       white-space: nowrap;
+    }
+    .spacing-slider {
+      display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    }
+    .spacing-label { color: #8b949e; font-size: 11px; }
+    .spacing-slider input[type="range"] {
+      width: 80px; height: 4px; -webkit-appearance: none; appearance: none;
+      background: #30363d; border-radius: 2px; outline: none; cursor: pointer;
+    }
+    .spacing-slider input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 12px; height: 12px;
+      background: #58a6ff; border-radius: 50%; cursor: pointer;
     }
     .cluster-toggle-label { color: #8b949e; font-size: 11px; }
     .toggle-switch {
@@ -284,11 +381,6 @@
     .toggle-switch input:checked + .toggle-slider { background: #1f6feb; }
     .toggle-switch input:checked + .toggle-slider::before { transform: translateX(14px); background: #fff; }
 
-    /* ── Legend ───────────────────────────────────────────────────── */
-
-    .legend {
-      display: flex; gap: 12px; align-items: center; font-size: 11px; color: #8b949e;
-    }
     .legend-dot {
       width: 10px; height: 10px; border-radius: 50%; display: inline-block;
       margin-right: 4px; vertical-align: middle;
@@ -314,25 +406,6 @@
       <span class="del" id="deletions"></span>
     </span>
 
-    <!-- Search -->
-    <div id="search-container">
-      <span id="search-icon">&#x1F50D;</span>
-      <input id="search-input" type="text" placeholder="Search files..." autocomplete="off" />
-      <span id="search-kbd"></span>
-      <div id="search-results"></div>
-    </div>
-
-    <div class="right">
-      <span id="fps" style="font-family:'SF Mono',Consolas,monospace;font-size:11px;color:#8b949e;min-width:55px;text-align:right"></span>
-    </div>
-  </div>
-
-  <!-- ── Filter bar ───────────────────────────────────────────────── -->
-
-  <div id="filter-bar">
-    <div class="filter-dropdown" id="filter-type-dropdown"></div>
-    <div class="filter-dropdown" id="filter-group-dropdown"></div>
-    <div class="filter-dropdown" id="filter-status-dropdown"></div>
     <div class="cluster-toggle">
       <span class="cluster-toggle-label">Cluster</span>
       <label class="toggle-switch">
@@ -340,17 +413,97 @@
         <span class="toggle-slider"></span>
       </label>
     </div>
+    <div class="right">
+      <button id="switch-viz-btn" style="display:none;background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap">Switch to CodeAtlas</button>
+      <span id="fps" style="font-family:'SF Mono',Consolas,monospace;font-size:11px;color:#8b949e;min-width:55px;text-align:right"></span>
+    </div>
   </div>
 
-  <!-- ── Graph ────────────────────────────────────────────────────── -->
+  <!-- ── Split layout ─────────────────────────────────────────────── -->
 
-  <div id="graph"></div>
+  <div id="main-container">
+    <!-- Left: Graph (63%) -->
+    <div id="left-pane">
+      <div id="graph"></div>
+      <div id="search-filter-bar">
+        <div id="search-container">
+          <span id="search-icon">&#x1F50D;</span>
+          <input id="search-input" type="text" placeholder="Search files..." autocomplete="off" />
+          <span id="search-kbd"></span>
+          <div id="search-results"></div>
+        </div>
+        <div id="filter-bar">
+          <div class="filter-dropdown" id="filter-type-dropdown"></div>
+          <div class="filter-dropdown" id="filter-group-dropdown"></div>
+          <div class="filter-dropdown" id="filter-status-dropdown"></div>
+        </div>
+        <div class="cluster-toggle">
+          <span class="cluster-toggle-label">Connected</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="connected-toggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="spacing-slider">
+          <span class="spacing-label">Spacing</span>
+          <input type="range" id="spacing-slider" min="1" max="10" value="3" />
+        </div>
+      </div>
+    </div>
 
-  <!-- ── FPS ──────────────────────────────────────────────────────── -->
+    <!-- Resizable handle -->
+    <div id="split-handle"></div>
 
-  <div id="frame-graph">
-    <canvas id="fg-canvas" width="160" height="40"></canvas>
-    <div class="fg-label"><span>0</span><span id="fg-peak"></span></div>
+    <!-- Right: Side panel (37%) -->
+    <div id="right-pane">
+      <!-- Detail panel (shown when node selected) -->
+      <div id="detail-panel">
+        <div class="rp-section" id="dp-info">
+          <h3 id="dp-name"></h3>
+          <div class="dp-path" id="dp-path"></div>
+          <div class="rp-header collapsible" data-target="dp-stats-body"><span>File Info</span><span class="collapse-arrow">&#9660;</span></div>
+          <div class="rp-body" id="dp-stats-body" style="max-height:200px">
+            <div class="dp-row"><span class="dp-label">Status</span><span class="dp-value" id="dp-status"></span></div>
+            <div class="dp-row"><span class="dp-label">Additions</span><span class="dp-value add" id="dp-add"></span></div>
+            <div class="dp-row"><span class="dp-label">Deletions</span><span class="dp-value del" id="dp-del"></span></div>
+            <div class="dp-row"><span class="dp-label">Type</span><span class="dp-value" id="dp-type"></span></div>
+            <div class="dp-row"><span class="dp-label">Group</span><span class="dp-value" id="dp-group"></span></div>
+          </div>
+          <div class="dp-connections">
+            <div class="rp-header collapsible" data-target="dp-conns-body" style="margin-bottom:0"><span class="dp-label">Connections</span><span class="collapse-arrow">&#9654;</span></div>
+            <div class="rp-body collapsed" id="dp-conns-body" style="max-height:200px;margin-top:4px">
+              <div id="dp-conns"></div>
+            </div>
+          </div>
+        </div>
+        <div class="dp-diff-wrap">
+          <div class="rp-header"><span>Diff</span></div>
+          <div class="diff-search" id="diff-search">
+            <input type="text" id="diff-search-input" placeholder="Search in diff..." />
+            <span class="diff-search-count" id="diff-search-count"></span>
+            <button class="diff-search-nav" id="diff-search-prev">&#9650;</button>
+            <button class="diff-search-nav" id="diff-search-next">&#9660;</button>
+          </div>
+          <div class="diff-viewer" id="dp-diff-content"></div>
+        </div>
+      </div>
+
+      <!-- Empty state (shown when no node selected) -->
+      <div id="empty-state">
+        <div>
+          <div class="icon">&#128065;</div>
+          <div class="msg">Click a node or press <span class="kbd"></span> to search</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Context menu ──────────────────────────────────────────────── -->
+
+  <div id="ctx-menu">
+    <div class="ctx-item" id="ctx-focus"><span class="ctx-item-icon">&#9673;</span>Focus neighborhood</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" id="ctx-copy"><span class="ctx-item-icon">&#128203;</span>Copy file path</div>
   </div>
 
   <!-- ── Tooltip ──────────────────────────────────────────────────── -->
@@ -362,32 +515,12 @@
     <div class="tt-type"></div>
   </div>
 
-  <!-- ── Detail panel ─────────────────────────────────────────────── -->
-
-  <div id="detail-panel">
-    <button class="dp-close" onclick="closeDetail()">&times;</button>
-    <h3 id="dp-name"></h3>
-    <div class="dp-path" id="dp-path"></div>
-    <div class="dp-row"><span class="dp-label">Status</span><span class="dp-value" id="dp-status"></span></div>
-    <div class="dp-row"><span class="dp-label">Additions</span><span class="dp-value add" id="dp-add"></span></div>
-    <div class="dp-row"><span class="dp-label">Deletions</span><span class="dp-value del" id="dp-del"></span></div>
-    <div class="dp-row"><span class="dp-label">Type</span><span class="dp-value" id="dp-type"></span></div>
-    <div class="dp-row"><span class="dp-label">Group</span><span class="dp-value" id="dp-group"></span></div>
-    <div class="dp-connections">
-      <span class="dp-label">Connections:</span>
-      <div id="dp-conns"></div>
-    </div>
-    <div class="dp-diff-section" id="dp-diff-section" style="display:none">
-      <span class="dp-label">Diff</span>
-      <button class="dp-diff-toggle" id="dp-diff-toggle">Show diff</button>
-      <div class="diff-viewer" id="dp-diff-content" style="display:none"></div>
-    </div>
-  </div>
-
   <!-- ── Data + Scripts ───────────────────────────────────────────── -->
 
   <script id="graph-data" type="application/json">__GRAPH_DATA__</script>
   <script id="all-branch-data" type="application/json">__ALL_BRANCH_DATA__</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://unpkg.com/force-graph@1.47.3/dist/force-graph.min.js"></script>
   <script>
     const data = JSON.parse(document.getElementById('graph-data').textContent);
@@ -401,7 +534,9 @@
 
     // Keyboard shortcut hint
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    document.getElementById('search-kbd').textContent = isMac ? '\u2318K' : 'Ctrl+K';
+    const kbdLabel = isMac ? '\u2318K' : 'Ctrl+K';
+    document.getElementById('search-kbd').textContent = kbdLabel;
+    document.querySelector('#empty-state .kbd').textContent = kbdLabel;
 
     // ── Branch selectors ──────────────────────────────────────────
 
@@ -414,7 +549,6 @@
     let selectedBranch = data.meta.branch;
 
     function populateBranchSelects(branches, base, branch) {
-      // Ensure current values are in the list
       const all = new Set(branches || []);
       all.add(base);
       all.add(branch);
@@ -454,12 +588,10 @@
       data.nodes = newData.nodes;
       data.links = newData.links;
 
-      // Update toolbar stats
       document.getElementById('file-count').textContent = data.meta.totalFiles + ' files';
       document.getElementById('additions').textContent = '+' + data.meta.totalAdditions;
       document.getElementById('deletions').textContent = ' -' + data.meta.totalDeletions;
 
-      // Rebuild adjacency
       neighbors.clear();
       data.links.forEach(link => {
         const sid = typeof link.source === 'object' ? link.source.id : link.source;
@@ -472,7 +604,6 @@
       nodeById.clear();
       data.nodes.forEach(n => nodeById.set(n.id, n));
 
-      // Rebuild filter counts
       typeCounts.clear(); groupCounts.clear(); statusCounts.clear();
       visibleTypes.clear(); visibleGroups.clear(); visibleStatuses.clear();
       data.nodes.forEach(n => {
@@ -484,36 +615,18 @@
         visibleStatuses.add(n.status);
       });
 
-      // Rebuild filter dropdowns
       document.getElementById('filter-type-dropdown').innerHTML = '';
       document.getElementById('filter-group-dropdown').innerHTML = '';
       document.getElementById('filter-status-dropdown').innerHTML = '';
-      buildFilterDropdown(
-        document.getElementById('filter-type-dropdown'),
-        'Type', typeCounts, visibleTypes,
-        key => TYPE_COLOR[key] || null,
-        key => TYPE_LABEL[key] || key,
-        applyFilters
-      );
-      buildFilterDropdown(
-        document.getElementById('filter-group-dropdown'),
-        'Group', groupCounts, visibleGroups,
-        () => null, key => key, applyFilters
-      );
-      buildFilterDropdown(
-        document.getElementById('filter-status-dropdown'),
-        'Status', statusCounts, visibleStatuses,
-        key => STATUS[key] ? STATUS[key].border : '#8b949e',
-        key => key, applyFilters
-      );
+      buildFilterDropdown(document.getElementById('filter-type-dropdown'), 'Type', typeCounts, visibleTypes, key => TYPE_COLOR[key] || null, key => TYPE_LABEL[key] || key, applyFilters);
+      buildFilterDropdown(document.getElementById('filter-group-dropdown'), 'Group', groupCounts, visibleGroups, () => null, key => key, applyFilters);
+      buildFilterDropdown(document.getElementById('filter-status-dropdown'), 'Status', statusCounts, visibleStatuses, key => STATUS[key] ? STATUS[key].border : '#8b949e', key => key, applyFilters);
 
-      // Reset clustering and detail panel
       expandedClusters.clear();
       closeDetail();
       selectedNode = null;
       updateHighlight(null);
 
-      // Reload graph
       applyFilters();
       setTimeout(() => Graph.zoomToFit(400, 60), 500);
     }
@@ -521,7 +634,6 @@
     reloadBtn.addEventListener('click', async () => {
       const newBranch = branchSelect.value;
 
-      // Try pre-embedded data first (instant switch)
       if (allBranchData[newBranch]) {
         selectedBranch = newBranch;
         loadNewData(allBranchData[newBranch]);
@@ -529,38 +641,27 @@
         return;
       }
 
-      // Try server API (live mode)
       if (isServed) {
         const newBase = baseSelect.value;
         reloadBtn.disabled = true;
         reloadBtn.textContent = 'Analyzing...';
         try {
           const resp = await fetch('/api/analyze?base=' + encodeURIComponent(newBase) + '&branch=' + encodeURIComponent(newBranch));
-          if (!resp.ok) {
-            const err = await resp.json();
-            alert('Analysis failed: ' + (err.error || 'Unknown error'));
-            return;
-          }
+          if (!resp.ok) { const err = await resp.json(); alert('Analysis failed: ' + (err.error || 'Unknown error')); return; }
           const newData = await resp.json();
           selectedBase = newBase;
           selectedBranch = newBranch;
           populateBranchSelects(data.meta.availableBranches || [], selectedBase, selectedBranch);
           loadNewData(newData);
           reloadBtn.classList.remove('visible');
-        } catch (e) {
-          alert('Failed: ' + e.message);
-        } finally {
-          reloadBtn.disabled = false;
-          reloadBtn.textContent = 'Reload';
-        }
+        } catch (e) { alert('Failed: ' + e.message); }
+        finally { reloadBtn.disabled = false; reloadBtn.textContent = 'Reload'; }
         return;
       }
 
-      // No data available for this branch
       alert('No pre-analyzed data for branch "' + newBranch + '".\nRe-run the analyzer to include it.');
     });
 
-    // If served, fetch latest branches on load
     if (isServed) {
       fetch('/api/branches').then(r => r.json()).then(({ branches }) => {
         populateBranchSelects(branches, selectedBase, selectedBranch);
@@ -577,16 +678,9 @@
     };
 
     const TYPE_COLOR = {
-      typescript: '#3178c6',
-      javascript: '#f1e05a',
-      json:       '#d29922',
-      style:      '#563d7c',
-      html:       '#e34c26',
-      csharp:     '#68217a',
-      yaml:       '#cb171e',
-      sql:        '#e38c00',
-      markdown:   '#6e7681',
-      other:      '#6e7681',
+      typescript: '#3178c6', javascript: '#f1e05a', json: '#d29922',
+      style: '#563d7c', html: '#e34c26', csharp: '#68217a',
+      yaml: '#cb171e', sql: '#e38c00', markdown: '#6e7681', other: '#6e7681',
     };
 
     const TYPE_LABEL = {
@@ -602,7 +696,6 @@
     const highlightNodes = new Set();
     const highlightLinks = new Set();
 
-    // Build adjacency
     const neighbors = new Map();
     data.links.forEach(link => {
       const sid = typeof link.source === 'object' ? link.source.id : link.source;
@@ -613,19 +706,16 @@
       neighbors.get(tid).add(sid);
     });
 
-    // Node lookup by id
     const nodeById = new Map();
     data.nodes.forEach(n => nodeById.set(n.id, n));
 
     function updateHighlight(node) {
       highlightNodes.clear();
       highlightLinks.clear();
-
       if (node) {
         highlightNodes.add(node.id);
         const nb = neighbors.get(node.id);
         if (nb) nb.forEach(id => highlightNodes.add(id));
-
         data.links.forEach(link => {
           const sid = typeof link.source === 'object' ? link.source.id : link.source;
           const tid = typeof link.target === 'object' ? link.target.id : link.target;
@@ -640,7 +730,6 @@
     const visibleGroups = new Set();
     const visibleStatuses = new Set();
 
-    // Collect unique types, groups, statuses with counts
     const typeCounts = new Map();
     const groupCounts = new Map();
     const statusCounts = new Map();
@@ -656,12 +745,10 @@
 
     // ── Dropdown multiselect builder ──────────────────────────────
 
-    let openDropdown = null; // track which dropdown is open
+    let openDropdown = null;
 
     function buildFilterDropdown(container, label, itemsMap, selectedSet, colorFn, labelFn, onChange) {
       const sorted = [...itemsMap.entries()].sort((a, b) => b[1] - a[1]);
-
-      // Trigger button
       const trigger = document.createElement('div');
       trigger.className = 'filter-trigger';
       const triggerLabel = document.createElement('span');
@@ -674,11 +761,8 @@
       triggerArrow.textContent = '\u25BE';
       trigger.append(triggerLabel, triggerCount, triggerArrow);
 
-      // Panel
       const panel = document.createElement('div');
       panel.className = 'filter-panel';
-
-      // Search inside panel
       const searchWrap = document.createElement('div');
       searchWrap.className = 'filter-panel-search';
       const searchInp = document.createElement('input');
@@ -686,7 +770,6 @@
       searchInp.placeholder = 'Search ' + label.toLowerCase() + '...';
       searchWrap.appendChild(searchInp);
 
-      // All / None actions
       const actions = document.createElement('div');
       actions.className = 'filter-panel-actions';
       const allBtn = document.createElement('button');
@@ -695,29 +778,23 @@
       noneBtn.textContent = 'None';
       actions.append(allBtn, noneBtn);
 
-      // Option list
       const list = document.createElement('div');
       list.className = 'filter-panel-list';
-
       const optionEls = [];
 
       sorted.forEach(([key, count]) => {
         const opt = document.createElement('div');
         opt.className = 'filter-option' + (selectedSet.has(key) ? ' selected' : '');
         opt.dataset.key = key;
-
         const check = document.createElement('span');
         check.className = 'filter-option-check';
         check.textContent = '\u2713';
-
         const lbl = document.createElement('span');
         lbl.className = 'filter-option-label';
         lbl.textContent = labelFn(key);
-
         const cnt = document.createElement('span');
         cnt.className = 'filter-option-count';
         cnt.textContent = count;
-
         const color = colorFn(key);
         if (color) {
           const dot = document.createElement('span');
@@ -727,16 +804,13 @@
         } else {
           opt.append(check, lbl, cnt);
         }
-
         opt.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (selectedSet.has(key)) selectedSet.delete(key);
-          else selectedSet.add(key);
+          if (selectedSet.has(key)) selectedSet.delete(key); else selectedSet.add(key);
           opt.classList.toggle('selected', selectedSet.has(key));
           updateTriggerCount();
           onChange();
         });
-
         list.appendChild(opt);
         optionEls.push({ el: opt, key, label: labelFn(key).toLowerCase() });
       });
@@ -744,7 +818,6 @@
       panel.append(searchWrap, actions, list);
       container.append(trigger, panel);
 
-      // Search filtering within the dropdown
       searchInp.addEventListener('input', () => {
         const q = searchInp.value.toLowerCase().trim();
         optionEls.forEach(o => {
@@ -752,35 +825,15 @@
           o.el.classList.toggle('filter-option-hidden', !match);
         });
       });
-
-      // Prevent search input clicks from closing dropdown
       searchInp.addEventListener('click', (e) => e.stopPropagation());
 
-      // All / None
-      allBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        sorted.forEach(([key]) => selectedSet.add(key));
-        optionEls.forEach(o => o.el.classList.add('selected'));
-        updateTriggerCount();
-        onChange();
-      });
-      noneBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectedSet.clear();
-        optionEls.forEach(o => o.el.classList.remove('selected'));
-        updateTriggerCount();
-        onChange();
-      });
+      allBtn.addEventListener('click', (e) => { e.stopPropagation(); sorted.forEach(([key]) => selectedSet.add(key)); optionEls.forEach(o => o.el.classList.add('selected')); updateTriggerCount(); onChange(); });
+      noneBtn.addEventListener('click', (e) => { e.stopPropagation(); selectedSet.clear(); optionEls.forEach(o => o.el.classList.remove('selected')); updateTriggerCount(); onChange(); });
 
-      // Toggle open/close
       trigger.addEventListener('click', (e) => {
         e.stopPropagation();
         const isOpen = panel.classList.contains('open');
-        // Close any other open dropdown
-        if (openDropdown && openDropdown !== panel) {
-          openDropdown.classList.remove('open');
-          openDropdown.previousElementSibling.classList.remove('open');
-        }
+        if (openDropdown && openDropdown !== panel) { openDropdown.classList.remove('open'); openDropdown.previousElementSibling.classList.remove('open'); }
         panel.classList.toggle('open', !isOpen);
         trigger.classList.toggle('open', !isOpen);
         openDropdown = !isOpen ? panel : null;
@@ -795,112 +848,61 @@
         triggerCount.style.color = selected === total ? '#58a6ff' : selected === 0 ? '#f85149' : '#d29922';
       }
 
-      // Expose a refresh for when external code modifies selectedSet
-      container._refresh = () => {
-        optionEls.forEach(o => o.el.classList.toggle('selected', selectedSet.has(o.key)));
-        updateTriggerCount();
-      };
-
+      container._refresh = () => { optionEls.forEach(o => o.el.classList.toggle('selected', selectedSet.has(o.key))); updateTriggerCount(); };
       updateTriggerCount();
     }
 
-    // Close dropdowns when clicking elsewhere
     document.addEventListener('click', () => {
-      if (openDropdown) {
-        openDropdown.classList.remove('open');
-        openDropdown.previousElementSibling.classList.remove('open');
-        openDropdown = null;
-      }
+      if (openDropdown) { openDropdown.classList.remove('open'); openDropdown.previousElementSibling.classList.remove('open'); openDropdown = null; }
     });
 
-    // Build the three filter dropdowns
-    buildFilterDropdown(
-      document.getElementById('filter-type-dropdown'),
-      'Type', typeCounts, visibleTypes,
-      key => TYPE_COLOR[key] || null,
-      key => TYPE_LABEL[key] || key,
-      applyFilters
-    );
+    buildFilterDropdown(document.getElementById('filter-type-dropdown'), 'Type', typeCounts, visibleTypes, key => TYPE_COLOR[key] || null, key => TYPE_LABEL[key] || key, applyFilters);
+    buildFilterDropdown(document.getElementById('filter-group-dropdown'), 'Group', groupCounts, visibleGroups, () => null, key => key, applyFilters);
+    buildFilterDropdown(document.getElementById('filter-status-dropdown'), 'Status', statusCounts, visibleStatuses, key => STATUS[key] ? STATUS[key].border : '#8b949e', key => key, applyFilters);
 
-    buildFilterDropdown(
-      document.getElementById('filter-group-dropdown'),
-      'Group', groupCounts, visibleGroups,
-      () => null,
-      key => key,
-      applyFilters
-    );
-
-    buildFilterDropdown(
-      document.getElementById('filter-status-dropdown'),
-      'Status', statusCounts, visibleStatuses,
-      key => STATUS[key] ? STATUS[key].border : '#8b949e',
-      key => key,
-      applyFilters
-    );
+    let connectedOnly = false;
 
     function isNodeVisible(node) {
-      return visibleTypes.has(node.fileType) && visibleGroups.has(node.group) && visibleStatuses.has(node.status);
+      if (!visibleTypes.has(node.fileType) || !visibleGroups.has(node.group) || !visibleStatuses.has(node.status)) return false;
+      if (connectedOnly && !neighbors.has(node.id)) return false;
+      return true;
     }
+
+    document.getElementById('connected-toggle').addEventListener('change', (e) => {
+      connectedOnly = e.target.checked;
+      applyFilters();
+    });
 
     // ── Clustering ────────────────────────────────────────────────
 
     let clusteringEnabled = false;
-    const expandedClusters = new Set(); // group names that are expanded
+    const expandedClusters = new Set();
 
     function buildClusteredData(nodes, links) {
       if (!clusteringEnabled) return { nodes, links };
-
-      // Separate nodes into clustered (collapsed) and expanded
-      const clusterNodes = []; // synthetic cluster nodes
-      const regularNodes = []; // nodes in expanded clusters or ungroupable
-      const groupChildren = new Map(); // group -> [nodes]
-
-      nodes.forEach(n => {
-        const g = n.group;
-        if (!groupChildren.has(g)) groupChildren.set(g, []);
-        groupChildren.get(g).push(n);
-      });
-
-      const clusterIdMap = new Map(); // original node id -> cluster id (for collapsed nodes)
+      const clusterNodes = [];
+      const regularNodes = [];
+      const groupChildren = new Map();
+      nodes.forEach(n => { const g = n.group; if (!groupChildren.has(g)) groupChildren.set(g, []); groupChildren.get(g).push(n); });
+      const clusterIdMap = new Map();
 
       groupChildren.forEach((children, group) => {
         if (expandedClusters.has(group) || children.length <= 2) {
-          // Expanded or too small to cluster — show individual nodes
           regularNodes.push(...children);
         } else {
-          // Collapse into a cluster node
           const clusterId = '__cluster__' + group;
           const totalAdd = children.reduce((s, n) => s + n.additions, 0);
           const totalDel = children.reduce((s, n) => s + n.deletions, 0);
-
-          // Find dominant file type for color
-          const typeCounts = {};
-          children.forEach(n => { typeCounts[n.fileType] = (typeCounts[n.fileType] || 0) + 1; });
-          const dominantType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0][0];
-
-          clusterNodes.push({
-            id: clusterId,
-            name: group,
-            filePath: group + '/',
-            additions: totalAdd,
-            deletions: totalDel,
-            totalChanges: totalAdd + totalDel,
-            status: 'modified',
-            fileType: dominantType,
-            group: group,
-            __isCluster: true,
-            __childCount: children.length,
-            __children: children,
-          });
-
+          const tc = {};
+          children.forEach(n => { tc[n.fileType] = (tc[n.fileType] || 0) + 1; });
+          const dominantType = Object.entries(tc).sort((a, b) => b[1] - a[1])[0][0];
+          clusterNodes.push({ id: clusterId, name: group, filePath: group + '/', additions: totalAdd, deletions: totalDel, totalChanges: totalAdd + totalDel, status: 'modified', fileType: dominantType, group, __isCluster: true, __childCount: children.length, __children: children });
           children.forEach(n => clusterIdMap.set(n.id, clusterId));
         }
       });
 
       const allNodes = [...regularNodes, ...clusterNodes];
       const allNodeIds = new Set(allNodes.map(n => n.id));
-
-      // Remap links: if a node is in a collapsed cluster, point to the cluster node
       const linkSeen = new Set();
       const remappedLinks = [];
       links.forEach(l => {
@@ -908,28 +910,25 @@
         let tid = typeof l.target === 'object' ? l.target.id : l.target;
         sid = clusterIdMap.get(sid) || sid;
         tid = clusterIdMap.get(tid) || tid;
-        if (sid === tid) return; // skip self-links within same cluster
+        if (sid === tid) return;
         if (!allNodeIds.has(sid) || !allNodeIds.has(tid)) return;
         const key = sid + '->' + tid;
         if (linkSeen.has(key)) return;
         linkSeen.add(key);
         remappedLinks.push({ source: sid, target: tid });
       });
-
       return { nodes: allNodes, links: remappedLinks };
     }
 
     function applyFilters() {
       const visibleNodeIds = new Set();
       data.nodes.forEach(n => { if (isNodeVisible(n)) visibleNodeIds.add(n.id); });
-
       const filteredNodes = data.nodes.filter(n => visibleNodeIds.has(n.id));
       const filteredLinks = data.links.filter(l => {
         const sid = typeof l.source === 'object' ? l.source.id : l.source;
         const tid = typeof l.target === 'object' ? l.target.id : l.target;
         return visibleNodeIds.has(sid) && visibleNodeIds.has(tid);
       });
-
       const clustered = buildClusteredData(filteredNodes, filteredLinks);
       Graph.graphData(clustered);
     }
@@ -940,11 +939,9 @@
       expandedClusters.add(group);
       _suppressZoomExpand = true;
       applyFilters();
-      // Re-enable zoom expand after the zoom animation settles
       setTimeout(() => { _suppressZoomExpand = false; }, 800);
     }
 
-    // Cluster toggle switch
     document.getElementById('cluster-toggle').addEventListener('change', (e) => {
       clusteringEnabled = e.target.checked;
       expandedClusters.clear();
@@ -960,37 +957,23 @@
     searchInput.addEventListener('input', () => {
       const query = searchInput.value.toLowerCase().trim();
       if (!query) { searchResults.style.display = 'none'; searchActiveIndex = -1; return; }
-
-      const matches = data.nodes
-        .filter(n => n.filePath.toLowerCase().includes(query) || n.name.toLowerCase().includes(query))
-        .slice(0, 10);
-
+      const matches = data.nodes.filter(n => n.filePath.toLowerCase().includes(query) || n.name.toLowerCase().includes(query)).slice(0, 10);
       if (matches.length === 0) {
         searchResults.innerHTML = '<div style="padding:10px 12px;color:#484f58;font-size:12px">No results</div>';
         searchResults.style.display = 'block';
         searchActiveIndex = -1;
         return;
       }
-
       searchResults.innerHTML = '';
       searchActiveIndex = -1;
       matches.forEach((node, i) => {
         const item = document.createElement('div');
         item.className = 'search-item';
         item.dataset.index = i;
-
         const statusColor = STATUS[node.status] ? STATUS[node.status].border : '#8b949e';
-        item.innerHTML =
-          '<div class="search-item-name">' + escapeHtml(node.name) +
-          '<span class="search-item-badge" style="background:' + statusColor + '22;color:' + statusColor + '">' + node.status + '</span>' +
-          '</div>' +
-          '<div class="search-item-path">' + escapeHtml(node.filePath) + '</div>';
-
+        item.innerHTML = '<div class="search-item-name">' + escapeHtml(node.name) + '<span class="search-item-badge" style="background:' + statusColor + '22;color:' + statusColor + '">' + node.status + '</span></div><div class="search-item-path">' + escapeHtml(node.filePath) + '</div>';
         item.addEventListener('click', () => navigateToNode(node));
-        item.addEventListener('mouseenter', () => {
-          searchActiveIndex = i;
-          updateSearchActive();
-        });
+        item.addEventListener('mouseenter', () => { searchActiveIndex = i; updateSearchActive(); });
         searchResults.appendChild(item);
       });
       searchResults.style.display = 'block';
@@ -1000,32 +983,13 @@
     searchInput.addEventListener('keydown', (e) => {
       const items = searchResults.querySelectorAll('.search-item');
       if (!items.length) return;
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        searchActiveIndex = Math.min(searchActiveIndex + 1, items.length - 1);
-        updateSearchActive();
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        searchActiveIndex = Math.max(searchActiveIndex - 1, 0);
-        updateSearchActive();
-      } else if (e.key === 'Enter' && searchActiveIndex >= 0) {
-        e.preventDefault();
-        const matches = searchResults._matches;
-        if (matches && matches[searchActiveIndex]) {
-          navigateToNode(matches[searchActiveIndex]);
-        }
-      } else if (e.key === 'Escape') {
-        searchInput.blur();
-        searchResults.style.display = 'none';
-        searchActiveIndex = -1;
-      }
+      if (e.key === 'ArrowDown') { e.preventDefault(); searchActiveIndex = Math.min(searchActiveIndex + 1, items.length - 1); updateSearchActive(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); searchActiveIndex = Math.max(searchActiveIndex - 1, 0); updateSearchActive(); }
+      else if (e.key === 'Enter' && searchActiveIndex >= 0) { e.preventDefault(); const m = searchResults._matches; if (m && m[searchActiveIndex]) navigateToNode(m[searchActiveIndex]); }
+      else if (e.key === 'Escape') { searchInput.blur(); searchResults.style.display = 'none'; searchActiveIndex = -1; }
     });
 
-    searchInput.addEventListener('blur', () => {
-      // Delay to allow click on results
-      setTimeout(() => { searchResults.style.display = 'none'; searchActiveIndex = -1; }, 200);
-    });
+    searchInput.addEventListener('blur', () => { setTimeout(() => { searchResults.style.display = 'none'; searchActiveIndex = -1; }, 200); });
 
     function updateSearchActive() {
       searchResults.querySelectorAll('.search-item').forEach((el, i) => {
@@ -1035,7 +999,6 @@
     }
 
     function navigateToNode(node) {
-      // Ensure node is visible in filters
       let changed = false;
       if (!visibleTypes.has(node.fileType)) { visibleTypes.add(node.fileType); changed = true; }
       if (!visibleGroups.has(node.group)) { visibleGroups.add(node.group); changed = true; }
@@ -1045,49 +1008,57 @@
         document.getElementById('filter-group-dropdown')._refresh();
         document.getElementById('filter-status-dropdown')._refresh();
       }
-
-      // If clustering is on, expand only the cluster containing this node
       if (clusteringEnabled && !expandedClusters.has(node.group)) {
         expandedClusters.add(node.group);
         _suppressZoomExpand = true;
         setTimeout(() => { _suppressZoomExpand = false; }, 800);
       }
-
       applyFilters();
-
-      // Find the force-graph node object (which has x, y)
-      // Use a short delay to let force-graph process the new data after cluster expansion
       setTimeout(() => {
         const graphNodes = Graph.graphData().nodes;
         const gNode = graphNodes.find(n => n.id === node.id);
         if (!gNode) return;
-
         selectedNode = gNode;
         updateHighlight(gNode);
         showDetail(gNode);
         Graph.centerAt(gNode.x, gNode.y, 600);
         Graph.zoom(3, 600);
       }, clusteringEnabled ? 100 : 0);
-
       searchInput.value = '';
       searchResults.style.display = 'none';
       searchActiveIndex = -1;
     }
 
-    // Cmd+K / Ctrl+K shortcut
+    let isFocusNeighborhood = false;
+
     document.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        searchInput.focus();
-        searchInput.select();
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); searchInput.focus(); searchInput.select(); return; }
+      if (e.key === 'Escape') {
+        // Close search if open
+        if (document.activeElement === searchInput) { searchInput.blur(); searchResults.style.display = 'none'; searchActiveIndex = -1; return; }
+        // Reset focus neighborhood + deselect node
+        selectedNode = null;
+        updateHighlight(null);
+        closeDetail();
+        if (isFocusNeighborhood) { isFocusNeighborhood = false; applyFilters(); }
+        Graph.zoomToFit(400, 60);
       }
     });
 
-    function escapeHtml(str) {
-      const d = document.createElement('div');
-      d.textContent = str;
-      return d.innerHTML;
-    }
+    function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+    // ── Collapsible sections ──────────────────────────────────────
+
+    document.addEventListener('click', (e) => {
+      const header = e.target.closest('.rp-header.collapsible');
+      if (!header) return;
+      const targetId = header.dataset.target;
+      const body = document.getElementById(targetId);
+      if (!body) return;
+      const arrow = header.querySelector('.collapse-arrow');
+      body.classList.toggle('collapsed');
+      if (arrow) arrow.textContent = body.classList.contains('collapsed') ? '\u25B6' : '\u25BC';
+    });
 
     // ── Tooltip ───────────────────────────────────────────────────
 
@@ -1095,7 +1066,8 @@
 
     // ── Force graph ───────────────────────────────────────────────
 
-    const Graph = ForceGraph()(document.getElementById('graph'))
+    const graphContainer = document.getElementById('graph');
+    const Graph = ForceGraph()(graphContainer)
       .graphData(data)
       .nodeId('id')
       .backgroundColor('#0d1117')
@@ -1110,160 +1082,58 @@
         const typeColor = TYPE_COLOR[node.fileType] || TYPE_COLOR.other;
         const totalChanges = Math.max(node.totalChanges || 1, 1);
         const isCluster = node.__isCluster;
-        const r = isCluster
-          ? Math.sqrt(node.__childCount) * 4 + 12
-          : Math.sqrt(totalChanges) * 1.2 + 5;
-
+        const r = isCluster ? Math.sqrt(node.__childCount) * 4 + 12 : Math.sqrt(totalChanges) * 1.2 + 5;
         const isHighlighted = highlightNodes.size === 0 || highlightNodes.has(node.id);
         const alpha = isHighlighted ? 1 : 0.15;
 
         ctx.save();
         ctx.globalAlpha = alpha;
-
-        if (highlightNodes.has(node.id) && highlightNodes.size > 0) {
-          ctx.shadowColor = typeColor;
-          ctx.shadowBlur = isCluster ? 20 : 12;
-        }
+        if (highlightNodes.has(node.id) && highlightNodes.size > 0) { ctx.shadowColor = typeColor; ctx.shadowBlur = isCluster ? 20 : 12; }
 
         if (isCluster) {
-          // ── Cluster node: dashed ring + inner fill + count badge ──
-          // Outer dashed ring
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, r + 3 / globalScale, 0, 2 * Math.PI);
-          ctx.setLineDash([4 / globalScale, 3 / globalScale]);
-          ctx.strokeStyle = typeColor;
-          ctx.lineWidth = 1.5 / globalScale;
-          ctx.globalAlpha = alpha * 0.6;
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.globalAlpha = alpha;
-
-          // Inner filled circle
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
-          ctx.fillStyle = typeColor;
-          ctx.globalAlpha = alpha * 0.35;
-          ctx.fill();
-          ctx.globalAlpha = alpha;
-          ctx.strokeStyle = typeColor;
-          ctx.lineWidth = 2 / globalScale;
-          ctx.globalAlpha = alpha * 0.8;
-          ctx.stroke();
-          ctx.globalAlpha = alpha;
-          ctx.shadowBlur = 0;
-
-          // Count badge in center
-          const badgeFontSize = Math.min(20 / globalScale, r * 0.7);
-          ctx.font = `700 ${badgeFontSize}px -apple-system, "Segoe UI", system-ui, sans-serif`;
-          ctx.fillStyle = '#f0f6fc';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(node.__childCount, node.x, node.y);
-
-          // Group name below
+          ctx.beginPath(); ctx.arc(node.x, node.y, r + 3 / globalScale, 0, 2 * Math.PI);
+          ctx.setLineDash([4 / globalScale, 3 / globalScale]); ctx.strokeStyle = typeColor; ctx.lineWidth = 1.5 / globalScale; ctx.globalAlpha = alpha * 0.6; ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = alpha;
+          ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, 2 * Math.PI); ctx.fillStyle = typeColor; ctx.globalAlpha = alpha * 0.35; ctx.fill();
+          ctx.globalAlpha = alpha; ctx.strokeStyle = typeColor; ctx.lineWidth = 2 / globalScale; ctx.globalAlpha = alpha * 0.8; ctx.stroke(); ctx.globalAlpha = alpha; ctx.shadowBlur = 0;
+          const badgeFS = Math.min(20 / globalScale, r * 0.7);
+          ctx.font = `700 ${badgeFS}px -apple-system, "Segoe UI", system-ui, sans-serif`; ctx.fillStyle = '#f0f6fc'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(node.__childCount, node.x, node.y);
           if (globalScale > 0.25) {
-            const nameFontSize = Math.min(14 / globalScale, 6);
-            ctx.font = `700 ${nameFontSize}px -apple-system, "Segoe UI", system-ui, sans-serif`;
-            ctx.fillStyle = '#e6edf3';
-            ctx.textBaseline = 'top';
-            ctx.fillText(node.name, node.x, node.y + r + 4 / globalScale);
-
-            const subFontSize = nameFontSize * 0.7;
-            ctx.font = `${subFontSize}px "SF Mono", Consolas, monospace`;
-            ctx.fillStyle = '#8b949e';
-            ctx.fillText(node.__childCount + ' files', node.x, node.y + r + 4 / globalScale + nameFontSize + 2 / globalScale);
+            const nfs = Math.min(14 / globalScale, 6);
+            ctx.font = `700 ${nfs}px -apple-system, "Segoe UI", system-ui, sans-serif`; ctx.fillStyle = '#e6edf3'; ctx.textBaseline = 'top'; ctx.fillText(node.name, node.x, node.y + r + 4 / globalScale);
+            ctx.font = `${nfs * 0.7}px "SF Mono", Consolas, monospace`; ctx.fillStyle = '#8b949e'; ctx.fillText(node.__childCount + ' files', node.x, node.y + r + 4 / globalScale + nfs + 2 / globalScale);
           }
         } else {
-          // ── Regular node ──
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
-          ctx.fillStyle = typeColor;
-          ctx.globalAlpha = alpha * 0.85;
-          ctx.fill();
-          ctx.globalAlpha = alpha;
-          ctx.strokeStyle = 'rgba(240,246,252,0.15)';
-          ctx.lineWidth = 1 / globalScale;
-          ctx.stroke();
-          ctx.shadowBlur = 0;
-
+          ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, 2 * Math.PI); ctx.fillStyle = typeColor; ctx.globalAlpha = alpha * 0.85; ctx.fill();
+          ctx.globalAlpha = alpha; ctx.strokeStyle = 'rgba(240,246,252,0.15)'; ctx.lineWidth = 1 / globalScale; ctx.stroke(); ctx.shadowBlur = 0;
           if (node.status !== 'modified') {
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, r + 2 / globalScale, 0, 2 * Math.PI);
-            ctx.strokeStyle = s.border;
-            ctx.lineWidth = 1.5 / globalScale;
-            ctx.globalAlpha = alpha * 0.5;
-            ctx.stroke();
-            ctx.globalAlpha = alpha;
+            ctx.beginPath(); ctx.arc(node.x, node.y, r + 2 / globalScale, 0, 2 * Math.PI); ctx.strokeStyle = s.border; ctx.lineWidth = 1.5 / globalScale; ctx.globalAlpha = alpha * 0.5; ctx.stroke(); ctx.globalAlpha = alpha;
           }
-
           if (globalScale > 0.4) {
-            const fontSize = Math.min(14 / globalScale, 5);
-            ctx.font = `600 ${fontSize}px -apple-system, "Segoe UI", system-ui, sans-serif`;
-            ctx.fillStyle = '#e6edf3';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillText(node.name, node.x, node.y + r + 3 / globalScale);
-
-            if (globalScale > 0.7 && node.totalChanges > 0) {
-              const smallFont = fontSize * 0.7;
-              ctx.font = `${smallFont}px "SF Mono", Consolas, monospace`;
-              ctx.fillStyle = '#8b949e';
-              const statsText = `+${node.additions} -${node.deletions}`;
-              ctx.fillText(statsText, node.x, node.y + r + 3 / globalScale + fontSize + 2 / globalScale);
-            }
+            const fs = Math.min(14 / globalScale, 5);
+            ctx.font = `600 ${fs}px -apple-system, "Segoe UI", system-ui, sans-serif`; ctx.fillStyle = '#e6edf3'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(node.name, node.x, node.y + r + 3 / globalScale);
+            if (globalScale > 0.7 && node.totalChanges > 0) { ctx.font = `${fs * 0.7}px "SF Mono", Consolas, monospace`; ctx.fillStyle = '#8b949e'; ctx.fillText(`+${node.additions} -${node.deletions}`, node.x, node.y + r + 3 / globalScale + fs + 2 / globalScale); }
           }
         }
-
         ctx.restore();
       })
       .nodePointerAreaPaint((node, color, ctx) => {
-        const isCluster = node.__isCluster;
-        const r = isCluster
-          ? Math.sqrt(node.__childCount) * 4 + 12
-          : Math.sqrt(Math.max(node.totalChanges || 1, 1)) * 1.2 + 5;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, r + 4, 0, 2 * Math.PI);
-        ctx.fill();
+        const r = node.__isCluster ? Math.sqrt(node.__childCount) * 4 + 12 : Math.sqrt(Math.max(node.totalChanges || 1, 1)) * 1.2 + 5;
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(node.x, node.y, r + 4, 0, 2 * Math.PI); ctx.fill();
       })
       .onNodeHover(node => {
         hoveredNode = node;
         updateHighlight(node || selectedNode);
-
-        if (node) {
-          tooltip.querySelector('.tt-name').textContent = node.name;
-          tooltip.querySelector('.tt-path').textContent = node.filePath;
-          tooltip.querySelector('.tt-stats').innerHTML =
-            `<span style="color:#3fb950">+${node.additions}</span> <span style="color:#f85149">-${node.deletions}</span>`;
-          tooltip.querySelector('.tt-type').textContent = node.fileType;
-          tooltip.style.display = 'block';
-        } else {
-          tooltip.style.display = 'none';
-        }
       })
       .onNodeClick(node => {
-        if (node.__isCluster) {
-          // Expand cluster: remember position, expand, then zoom into where children land
-          const cx = node.x, cy = node.y;
-          expandCluster(node.group);
-          Graph.centerAt(cx, cy, 400);
-          Graph.zoom(2, 400);
-          return;
-        }
+        if (node.__isCluster) { const cx = node.x, cy = node.y; expandCluster(node.group); Graph.centerAt(cx, cy, 400); Graph.zoom(2, 400); return; }
         selectedNode = node;
         updateHighlight(node);
         showDetail(node);
-
         Graph.centerAt(node.x, node.y, 400);
         Graph.zoom(2, 400);
       })
-      .onBackgroundClick(() => {
-        selectedNode = null;
-        updateHighlight(null);
-        closeDetail();
-      })
+      .onBackgroundClick(() => { selectedNode = null; updateHighlight(null); closeDetail(); })
       .onZoom((() => {
-        // Debounced zoom-based auto-expand to avoid feedback loops
         let zoomTimer = null;
         let lastExpansionZoom = 0;
         return ({ k, x, y }) => {
@@ -1273,30 +1143,14 @@
             if (_suppressZoomExpand) return;
             if (k > 2.5 && k > lastExpansionZoom) {
               const graphNodes = Graph.graphData().nodes;
-              const graphEl = document.getElementById('graph');
-              const w = graphEl.clientWidth;
-              const h = graphEl.clientHeight;
-              const cx = (w / 2 - x) / k;
-              const cy = (h / 2 - y) / k;
+              const el = graphContainer;
+              const w = el.clientWidth, h = el.clientHeight;
+              const cx = (w / 2 - x) / k, cy = (h / 2 - y) / k;
               const viewRadius = Math.max(w, h) / k / 2;
               let expanded = false;
-              graphNodes.forEach(n => {
-                if (n.__isCluster) {
-                  const dx = (n.x || 0) - cx;
-                  const dy = (n.y || 0) - cy;
-                  if (Math.sqrt(dx * dx + dy * dy) < viewRadius) {
-                    expandedClusters.add(n.group);
-                    expanded = true;
-                  }
-                }
-              });
-              if (expanded) {
-                lastExpansionZoom = k;
-                applyFilters();
-              }
-            } else if (k < 1.0) {
-              lastExpansionZoom = 0;
-            }
+              graphNodes.forEach(n => { if (n.__isCluster) { const dx = (n.x || 0) - cx, dy = (n.y || 0) - cy; if (Math.sqrt(dx * dx + dy * dy) < viewRadius) { expandedClusters.add(n.group); expanded = true; } } });
+              if (expanded) { lastExpansionZoom = k; applyFilters(); }
+            } else if (k < 1.0) { lastExpansionZoom = 0; }
           }, 300);
         };
       })())
@@ -1304,21 +1158,30 @@
       .d3AlphaDecay(0.05)
       .d3VelocityDecay(0.65);
 
-    // Configure forces
     Graph.d3Force('charge').strength(-200).distanceMax(300);
     Graph.d3Force('link').distance(80).strength(0.4);
     Graph.d3Force('center').strength(0.1);
 
-    // Track mouse for tooltip
-    document.getElementById('graph').addEventListener('mousemove', (e) => {
-      tooltip.style.left = (e.clientX + 16) + 'px';
-      tooltip.style.top = (e.clientY + 16) + 'px';
+    // Spacing slider — adjusts repulsion between unconnected groups
+    document.getElementById('spacing-slider').addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      const strength = -50 * val;       // 1 = -50 (tight), 10 = -500 (very spread)
+      const maxDist = 100 + val * 80;   // 1 = 180, 10 = 900
+      Graph.d3Force('charge').strength(strength).distanceMax(maxDist);
+      Graph.d3ReheatSimulation();
     });
+
+    // Resize graph when left pane resizes
+    new ResizeObserver(() => {
+      Graph.width(graphContainer.clientWidth).height(graphContainer.clientHeight);
+    }).observe(graphContainer);
+
 
     // ── Detail panel ──────────────────────────────────────────────
 
     function showDetail(node) {
       const panel = document.getElementById('detail-panel');
+      const emptyState = document.getElementById('empty-state');
       const statusBadge = '<span class="dp-status-badge dp-status-' + node.status + '">' + node.status + '</span>';
       document.getElementById('dp-name').innerHTML = escapeHtml(node.name) + statusBadge;
       document.getElementById('dp-path').textContent = node.filePath;
@@ -1328,7 +1191,6 @@
       document.getElementById('dp-type').textContent = node.fileType;
       document.getElementById('dp-group').textContent = node.group;
 
-      // Connections — clickable
       const conns = document.getElementById('dp-conns');
       conns.innerHTML = '';
       const nb = neighbors.get(node.id);
@@ -1338,123 +1200,376 @@
           el.className = 'dp-conn-item';
           el.textContent = id.split('/').pop();
           el.title = id;
-          el.addEventListener('click', () => {
-            const target = nodeById.get(id);
-            if (target) navigateToNode(target);
-          });
+          el.addEventListener('click', () => { const target = nodeById.get(id); if (target) navigateToNode(target); });
           conns.appendChild(el);
         });
-      } else {
-        conns.innerHTML = '<div style="color:#484f58;font-size:11px">No connections</div>';
-      }
+      } else { conns.innerHTML = '<div style="color:#484f58;font-size:11px">No connections</div>'; }
 
-      // Diff viewer
-      const diffSection = document.getElementById('dp-diff-section');
-      const diffToggle = document.getElementById('dp-diff-toggle');
+      // Diff — always visible, no toggle
       const diffContent = document.getElementById('dp-diff-content');
-
       if (node.diffContent) {
-        diffSection.style.display = 'block';
-        diffToggle.textContent = 'Show diff';
-        diffContent.style.display = 'none';
-
-        diffToggle.onclick = () => {
-          if (diffContent.style.display === 'none') {
-            diffContent.style.display = 'block';
-            diffToggle.textContent = 'Hide diff';
-            renderDiff(node.diffContent, diffContent);
-          } else {
-            diffContent.style.display = 'none';
-            diffToggle.textContent = 'Show diff';
-          }
-        };
+        renderDiff(node.diffContent, diffContent, node.fileType);
       } else {
-        diffSection.style.display = 'none';
+        diffContent.innerHTML = '<div class="diff-empty">No diff content available.<br>Use --diff-content flag to include diffs.</div>';
       }
 
-      panel.style.display = 'block';
+      panel.classList.add('visible');
+      emptyState.style.display = 'none';
     }
 
-    function renderDiff(diffStr, container) {
-      container.innerHTML = '';
-      const lines = diffStr.split('\n');
-      lines.forEach(line => {
-        const span = document.createElement('span');
-        span.className = 'diff-line';
-        if (line.startsWith('+') && !line.startsWith('+++')) {
-          span.className += ' diff-line-add';
-        } else if (line.startsWith('-') && !line.startsWith('---')) {
-          span.className += ' diff-line-del';
-        } else if (line.startsWith('@@')) {
-          span.className += ' diff-line-hunk';
-        } else {
-          span.className += ' diff-line-ctx';
-        }
-        span.textContent = line;
-        container.appendChild(span);
-      });
+    let diffLineEls = [];
+    let currentDiffLang = 'plaintext';
+
+    // Map fileType to highlight.js language
+    const HLJS_LANG = {
+      typescript: 'typescript', javascript: 'javascript', json: 'json',
+      style: 'css', html: 'xml', csharp: 'csharp', yaml: 'yaml',
+      sql: 'sql', markdown: 'markdown',
+    };
+
+    // ── Word-level diff (simple LCS-based) ────────────────────────
+
+    function wordDiff(oldLine, newLine) {
+      const oldWords = oldLine.split(/(\s+)/);
+      const newWords = newLine.split(/(\s+)/);
+      const n = oldWords.length, m = newWords.length;
+      // LCS table
+      const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+      for (let i = 1; i <= n; i++)
+        for (let j = 1; j <= m; j++)
+          dp[i][j] = oldWords[i - 1] === newWords[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+
+      // Backtrack to find changed words
+      const oldChanged = new Set(), newChanged = new Set();
+      let i = n, j = m;
+      while (i > 0 && j > 0) {
+        if (oldWords[i - 1] === newWords[j - 1]) { i--; j--; }
+        else if (dp[i - 1][j] > dp[i][j - 1]) { oldChanged.add(i - 1); i--; }
+        else { newChanged.add(j - 1); j--; }
+      }
+      while (i > 0) { oldChanged.add(i - 1); i--; }
+      while (j > 0) { newChanged.add(j - 1); j--; }
+
+      return { oldWords, newWords, oldChanged, newChanged };
     }
+
+    function renderWordDiffLine(words, changed, cssClass) {
+      let html = '';
+      words.forEach((w, i) => {
+        const esc = escapeHtml(w);
+        html += changed.has(i) ? '<span class="' + cssClass + '">' + esc + '</span>' : esc;
+      });
+      return html;
+    }
+
+    // ── Syntax highlight a line ───────────────────────────────────
+
+    function highlightLine(text, lang) {
+      if (!window.hljs || lang === 'plaintext') return escapeHtml(text);
+      try {
+        return hljs.highlight(text, { language: lang, ignoreIllegals: true }).value;
+      } catch { return escapeHtml(text); }
+    }
+
+    // ── Render diff with all enhancements ─────────────────────────
+
+    function renderDiff(diffStr, container, fileType) {
+      container.innerHTML = '';
+      diffLineEls = [];
+      currentDiffLang = HLJS_LANG[fileType] || 'plaintext';
+      const lines = diffStr.split('\n');
+      let lineNum = 0;
+
+      // Pre-parse into structured entries
+      const entries = [];
+      lines.forEach(line => {
+        let type;
+        if (line.startsWith('+') && !line.startsWith('+++')) type = 'add';
+        else if (line.startsWith('-') && !line.startsWith('---')) type = 'del';
+        else if (line.startsWith('@@')) type = 'hunk';
+        else type = 'ctx';
+        entries.push({ line, type });
+      });
+
+      // Build DOM with word-level diffs and folding
+      let i = 0;
+      lineNum = 0;
+
+      while (i < entries.length) {
+        const e = entries[i];
+
+        // Hunk header
+        if (e.type === 'hunk') {
+          const m = e.line.match(/@@ -\d+(?:,\d+)? \+(\d+)/);
+          if (m) lineNum = parseInt(m[1]) - 1;
+          lineNum++;
+          appendDiffRow(container, e.line, '...', 'diff-line-hunk', false);
+          i++;
+          continue;
+        }
+
+        // Pair adjacent del+add for word-level diff
+        if (e.type === 'del') {
+          const delBlock = [];
+          let j = i;
+          while (j < entries.length && entries[j].type === 'del') delBlock.push(entries[j++]);
+          const addBlock = [];
+          while (j < entries.length && entries[j].type === 'add') addBlock.push(entries[j++]);
+
+          // Pair them up for word diff
+          const pairCount = Math.min(delBlock.length, addBlock.length);
+          for (let k = 0; k < delBlock.length; k++) {
+            lineNum++;
+            if (k < pairCount) {
+              const oldText = delBlock[k].line.substring(1);
+              const newText = addBlock[k].line.substring(1);
+              const wd = wordDiff(oldText, newText);
+              appendDiffRow(container, '-' + renderWordDiffLine(wd.oldWords, wd.oldChanged, 'diff-word-del'), lineNum, 'diff-line-del', true);
+            } else {
+              appendDiffRow(container, highlightLine(delBlock[k].line, currentDiffLang), lineNum, 'diff-line-del', true);
+            }
+          }
+          for (let k = 0; k < addBlock.length; k++) {
+            lineNum++;
+            if (k < pairCount) {
+              const oldText = delBlock[k].line.substring(1);
+              const newText = addBlock[k].line.substring(1);
+              const wd = wordDiff(oldText, newText);
+              appendDiffRow(container, '+' + renderWordDiffLine(wd.newWords, wd.newChanged, 'diff-word-add'), lineNum, 'diff-line-add', true);
+            } else {
+              appendDiffRow(container, highlightLine(addBlock[k].line, currentDiffLang), lineNum, 'diff-line-add', true);
+            }
+          }
+          i = j;
+          continue;
+        }
+
+        // Context lines — check for foldable runs
+        if (e.type === 'ctx') {
+          const ctxStart = i;
+          while (i < entries.length && entries[i].type === 'ctx') i++;
+          const ctxLines = entries.slice(ctxStart, i);
+
+          if (ctxLines.length > 8) {
+            // Show 3 lines top, fold middle, show 3 lines bottom
+            for (let k = 0; k < 3; k++) { lineNum++; appendDiffRow(container, highlightLine(ctxLines[k].line, currentDiffLang), lineNum, 'diff-line-ctx', true); }
+            const foldCount = ctxLines.length - 6;
+            const foldLineStart = lineNum + 1;
+            const fold = document.createElement('div');
+            fold.className = 'diff-fold';
+            fold.textContent = '... ' + foldCount + ' unchanged lines (click to expand) ...';
+            fold.addEventListener('click', () => {
+              const frag = document.createDocumentFragment();
+              let ln = foldLineStart;
+              for (let k = 3; k < ctxLines.length - 3; k++) {
+                const r = makeDiffRow(highlightLine(ctxLines[k].line, currentDiffLang), ln++, 'diff-line-ctx', true);
+                diffLineEls.push({ el: r, text: ctxLines[k].line.toLowerCase() });
+                frag.appendChild(r);
+              }
+              fold.replaceWith(frag);
+            });
+            container.appendChild(fold);
+            lineNum += foldCount;
+            for (let k = ctxLines.length - 3; k < ctxLines.length; k++) { lineNum++; appendDiffRow(container, highlightLine(ctxLines[k].line, currentDiffLang), lineNum, 'diff-line-ctx', true); }
+          } else {
+            ctxLines.forEach(c => { lineNum++; appendDiffRow(container, highlightLine(c.line, currentDiffLang), lineNum, 'diff-line-ctx', true); });
+          }
+          continue;
+        }
+
+        // Add lines (standalone, not paired)
+        if (e.type === 'add') {
+          lineNum++;
+          appendDiffRow(container, highlightLine(e.line, currentDiffLang), lineNum, 'diff-line-add', true);
+          i++;
+          continue;
+        }
+
+        i++;
+      }
+
+      document.getElementById('diff-search-input').value = '';
+      document.getElementById('diff-search-count').textContent = '';
+    }
+
+    function makeDiffRow(content, lineNum, cls, isHtml) {
+      const row = document.createElement('div');
+      row.className = 'diff-line ' + cls;
+      const num = document.createElement('span');
+      num.className = 'diff-line-num';
+      num.textContent = lineNum;
+      const text = document.createElement('span');
+      text.className = 'diff-line-text';
+      if (isHtml) text.innerHTML = content; else text.textContent = content;
+      row.append(num, text);
+      return row;
+    }
+
+    function appendDiffRow(container, content, lineNum, cls, isHtml) {
+      const row = makeDiffRow(content, lineNum, cls, isHtml);
+      container.appendChild(row);
+      diffLineEls.push({ el: row, text: (typeof content === 'string' ? content : '').toLowerCase() });
+    }
+
+    // ── Diff search ───────────────────────────────────────────────
+
+    let diffSearchMatches = [];
+    let diffSearchIdx = -1;
+
+    document.getElementById('diff-search-input').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      // Clear previous highlights
+      diffSearchMatches.forEach(el => el.classList.remove('diff-line-highlight'));
+      diffSearchMatches = [];
+      diffSearchIdx = -1;
+
+      if (!q) { document.getElementById('diff-search-count').textContent = ''; return; }
+
+      diffLineEls.forEach(({ el, text }) => {
+        if (text.includes(q)) { diffSearchMatches.push(el); }
+      });
+
+      document.getElementById('diff-search-count').textContent = diffSearchMatches.length + ' found';
+
+      if (diffSearchMatches.length > 0) {
+        diffSearchIdx = 0;
+        highlightDiffMatch();
+      }
+    });
+
+    function highlightDiffMatch() {
+      diffSearchMatches.forEach(el => el.classList.remove('diff-line-highlight'));
+      if (diffSearchIdx >= 0 && diffSearchIdx < diffSearchMatches.length) {
+        const el = diffSearchMatches[diffSearchIdx];
+        el.classList.add('diff-line-highlight');
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        document.getElementById('diff-search-count').textContent = (diffSearchIdx + 1) + '/' + diffSearchMatches.length;
+      }
+    }
+
+    document.getElementById('diff-search-next').addEventListener('click', () => {
+      if (diffSearchMatches.length === 0) return;
+      diffSearchIdx = (diffSearchIdx + 1) % diffSearchMatches.length;
+      highlightDiffMatch();
+    });
+
+    document.getElementById('diff-search-prev').addEventListener('click', () => {
+      if (diffSearchMatches.length === 0) return;
+      diffSearchIdx = (diffSearchIdx - 1 + diffSearchMatches.length) % diffSearchMatches.length;
+      highlightDiffMatch();
+    });
 
     function closeDetail() {
-      document.getElementById('detail-panel').style.display = 'none';
+      document.getElementById('detail-panel').classList.remove('visible');
+      document.getElementById('empty-state').style.display = '';
     }
 
-    // ── FPS counter + frame graph ─────────────────────────────────
+    // ── Right-click context menu ────────────────────────────────
+
+    const ctxMenu = document.getElementById('ctx-menu');
+    let ctxNode = null;
+
+    graphContainer.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // Track last mouse position for context menu
+    let lastMouseX = 0, lastMouseY = 0;
+    graphContainer.addEventListener('mousemove', (e) => { lastMouseX = e.clientX; lastMouseY = e.clientY; });
+    graphContainer.addEventListener('pointerdown', (e) => { if (e.button === 2) { lastMouseX = e.clientX; lastMouseY = e.clientY; } });
+
+    Graph.onNodeRightClick(node => {
+      if (node.__isCluster) return;
+      ctxNode = node;
+      ctxMenu.style.display = 'block';
+      ctxMenu.style.left = lastMouseX + 'px';
+      ctxMenu.style.top = lastMouseY + 'px';
+    });
+
+    document.addEventListener('click', () => { ctxMenu.style.display = 'none'; });
+
+    document.getElementById('ctx-focus').addEventListener('click', () => {
+      if (!ctxNode) return;
+      isFocusNeighborhood = true;
+      const nb = neighbors.get(ctxNode.id);
+      const focusSet = new Set([ctxNode.id]);
+      if (nb) nb.forEach(id => focusSet.add(id));
+      const gd = Graph.graphData();
+      Graph.graphData({
+        nodes: gd.nodes.filter(n => focusSet.has(n.id)),
+        links: gd.links.filter(l => {
+          const sid = typeof l.source === 'object' ? l.source.id : l.source;
+          const tid = typeof l.target === 'object' ? l.target.id : l.target;
+          return focusSet.has(sid) && focusSet.has(tid);
+        })
+      });
+      setTimeout(() => Graph.zoomToFit(400, 40), 300);
+    });
+
+    document.getElementById('ctx-copy').addEventListener('click', () => {
+      if (!ctxNode) return;
+      navigator.clipboard.writeText(ctxNode.filePath).catch(() => {});
+    });
+
+    // ── Resizable split pane ──────────────────────────────────────
+
+    const splitHandle = document.getElementById('split-handle');
+    const leftPane = document.getElementById('left-pane');
+    const rightPane = document.getElementById('right-pane');
+
+    splitHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      splitHandle.classList.add('dragging');
+      const startX = e.clientX;
+      const startLeftW = leftPane.offsetWidth;
+      const totalW = document.getElementById('main-container').offsetWidth;
+
+      function onMove(e) {
+        const dx = e.clientX - startX;
+        const newLeft = Math.max(300, Math.min(totalW - 250, startLeftW + dx));
+        const pct = (newLeft / totalW) * 100;
+        leftPane.style.width = pct + '%';
+        rightPane.style.width = (100 - pct) + '%';
+        Graph.width(leftPane.clientWidth).height(leftPane.clientHeight);
+      }
+
+      function onUp() {
+        splitHandle.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    // ── FPS counter ────────────────────────────────────────────────
 
     const fpsEl = document.getElementById('fps');
-    const fgCanvas = document.getElementById('fg-canvas');
-    const fgCtx = fgCanvas.getContext('2d');
-    const fgPeakEl = document.getElementById('fg-peak');
-    const FG_W = 160, FG_H = 40;
-    const fpsHistory = new Array(FG_W).fill(0);
     let frameCount = 0;
     let lastFpsTime = performance.now();
-    let peakFps = 0;
-
-    function drawFrameGraph() {
-      fgCtx.clearRect(0, 0, FG_W, FG_H);
-
-      const target60 = FG_H - (60 / Math.max(peakFps, 60)) * FG_H;
-      fgCtx.strokeStyle = 'rgba(63,185,80,0.2)';
-      fgCtx.lineWidth = 1;
-      fgCtx.setLineDash([2, 2]);
-      fgCtx.beginPath();
-      fgCtx.moveTo(0, target60);
-      fgCtx.lineTo(FG_W, target60);
-      fgCtx.stroke();
-      fgCtx.setLineDash([]);
-
-      const maxFps = Math.max(peakFps, 60);
-      for (let i = 0; i < FG_W; i++) {
-        const fps = fpsHistory[i];
-        const h = (fps / maxFps) * FG_H;
-        const color = fps >= 55 ? '#3fb950' : fps >= 30 ? '#d29922' : '#f85149';
-        fgCtx.fillStyle = color;
-        fgCtx.fillRect(i, FG_H - h, 1, h);
-      }
-    }
 
     (function fpsLoop() {
       frameCount++;
       const now = performance.now();
       if (now - lastFpsTime >= 1000) {
-        const fps = frameCount;
-        fpsEl.textContent = fps + ' fps';
-        if (fps > peakFps) peakFps = fps;
-        fgPeakEl.textContent = peakFps + ' peak';
-
-        fpsHistory.shift();
-        fpsHistory.push(fps);
-        drawFrameGraph();
-
-        frameCount = 0;
-        lastFpsTime = now;
+        fpsEl.textContent = frameCount + ' fps';
+        frameCount = 0; lastFpsTime = now;
       }
       requestAnimationFrame(fpsLoop);
     })();
 
-    // Fit to view after simulation settles
     setTimeout(() => Graph.zoomToFit(400, 60), 1500);
+
+    // Show "Switch to CodeAtlas" button when served from dashboard
+    (() => {
+      const m = window.location.pathname.match(/\/api\/workflows\/([^/]+)\/tsmorph/);
+      if (m) {
+        const btn = document.getElementById('switch-viz-btn');
+        btn.style.display = 'inline-block';
+        btn.addEventListener('click', () => {
+          window.location.href = '/api/workflows/' + m[1] + '/codeatlas';
+        });
+      }
+    })();
   </script>
 </body>
 </html>

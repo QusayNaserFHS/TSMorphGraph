@@ -17,7 +17,7 @@
   "scripts": {
     "analyze": "tsx src/cli.ts",
     "generate": "tsx src/generate-test-data.ts",
-    "build": "tsc",
+    "build": "tsc && cp src/template.html dist/template.html",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

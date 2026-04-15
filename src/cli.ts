@@ -18,6 +18,7 @@ function parseArgs() {
   let open = false;
   let serve = false;
   let port = 3742;
+  let skipAllBranches = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--repo' && args[i + 1]) repo = path.resolve(args[++i]);
@@ -29,9 +30,10 @@ function parseArgs() {
     if (args[i] === '--open') open = true;
     if (args[i] === '--serve') serve = true;
     if (args[i] === '--port' && args[i + 1]) port = parseInt(args[++i]);
+    if (args[i] === '--no-all-branches') skipAllBranches = true;
   }
 
-  return { repo, base, branch, diffContent, listBranches, output, open, serve, port };
+  return { repo, base, branch, diffContent, listBranches, output, open, serve, port, skipAllBranches };
 }
 
 // ── Server mode ─────────────────────────────────────────────────────
@@ -108,7 +110,7 @@ function startServer(opts: { repo: string; base: string; branch: string; diffCon
 // ── Main ────────────────────────────────────────────────────────────
 
 function main() {
-  const { repo, base, branch, diffContent, listBranches, output: outDir, open: shouldOpen, serve, port } = parseArgs();
+  const { repo, base, branch, diffContent, listBranches, output: outDir, open: shouldOpen, serve, port, skipAllBranches } = parseArgs();
 
   // List branches mode
   if (listBranches) {
@@ -136,11 +138,14 @@ function main() {
     console.log(`Found ${graphData.nodes.length} changed files`);
     console.log(`Found ${graphData.links.length} import links`);
 
-    // Pre-analyze all other branches (lightweight, no diff content)
-    console.log('Analyzing other branches...');
-    const allBranchData = analyzeAllBranches(repo, graphData.meta.base, graphData.meta.branch, diffContent);
-    const branchCount = Object.keys(allBranchData).length;
-    console.log(`Pre-analyzed ${branchCount} branches for instant switching`);
+    // Pre-analyze all other branches (unless skipped)
+    let allBranchData: Record<string, any> | undefined;
+    if (!skipAllBranches) {
+      console.log('Analyzing other branches...');
+      allBranchData = analyzeAllBranches(repo, graphData.meta.base, graphData.meta.branch, diffContent);
+      const branchCount = Object.keys(allBranchData).length;
+      console.log(`Pre-analyzed ${branchCount} branches for instant switching`);
+    }
 
     // Write output
     fs.mkdirSync(outDir, { recursive: true });
