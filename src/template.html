@@ -477,9 +477,7 @@
           <button id="violations-rules-btn" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px">Rules</button>
         </div>
       </div>
-    </div>
-
-      <!-- Rules panel (floating) -->
+      <!-- Rules panel (floating inside left pane) -->
       <div id="rules-panel" style="display:none;position:absolute;bottom:12px;left:12px;z-index:50;background:#161b22dd;border:1px solid #30363d;border-radius:8px;padding:12px;min-width:280px;max-width:400px;max-height:50vh;overflow-y:auto;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(0,0,0,0.4)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <span style="font-size:12px;font-weight:600;color:#f0f6fc">Architecture Rules</span>
@@ -516,6 +514,10 @@
               <div id="dp-conns"></div>
             </div>
           </div>
+        </div>
+        <div class="rp-section" id="dp-violations-section" style="display:none">
+          <div class="rp-header" style="color:#f85149"><span>Violations</span></div>
+          <div id="dp-violations-list"></div>
         </div>
         <div class="dp-diff-wrap">
           <div class="rp-header"><span>Diff</span></div>
@@ -1361,6 +1363,34 @@
           conns.appendChild(el);
         });
       } else { conns.innerHTML = '<div style="color:#484f58;font-size:11px">No connections</div>'; }
+
+      // Violations for this node
+      const violSection = document.getElementById('dp-violations-section');
+      const violList = document.getElementById('dp-violations-list');
+      const nodeViolations = violations.filter(v => v.source === node.id || v.target === node.id);
+      if (nodeViolations.length > 0) {
+        violSection.style.display = 'block';
+        violList.innerHTML = '';
+        nodeViolations.forEach(v => {
+          const div = document.createElement('div');
+          div.style.cssText = 'display:flex;align-items:flex-start;gap:6px;padding:4px 0;font-size:11px;border-bottom:1px solid #21262d';
+          const isFrom = v.source === node.id;
+          const otherFile = isFrom ? v.target : v.source;
+          const typeColor = v.violationType === 'circular' ? '#f85149' : v.violationType === 'layer' ? '#d29922' : '#f85149';
+          div.innerHTML =
+            '<span style="background:' + typeColor + '22;color:' + typeColor + ';font-size:9px;padding:1px 5px;border-radius:4px;font-weight:600;text-transform:uppercase;flex-shrink:0">' + v.violationType + '</span>' +
+            '<span style="color:#c9d1d9">' + (isFrom ? 'imports ' : 'imported by ') +
+            '<span style="color:#58a6ff;cursor:pointer" onclick="document.querySelector(\'#search-input\').value=\'' + escapeHtml(otherFile.split('/').pop()) + '\'">' + escapeHtml(otherFile.split('/').pop()) + '</span>' +
+            '</span>';
+          violList.appendChild(div);
+          const desc = document.createElement('div');
+          desc.style.cssText = 'font-size:10px;color:#8b949e;padding:0 0 4px 0';
+          desc.textContent = v.violation;
+          violList.appendChild(desc);
+        });
+      } else {
+        violSection.style.display = 'none';
+      }
 
       // Diff — always visible, no toggle
       const diffContent = document.getElementById('dp-diff-content');
