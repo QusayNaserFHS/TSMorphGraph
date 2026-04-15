@@ -118,11 +118,13 @@ export function detectGroup(filePath: string): string {
   const parts = filePath.split('/');
   if (parts.length <= 1) return 'root';
   const skip = new Set(['src', 'lib', 'app', 'test', 'tests', '.']);
+  const meaningful: string[] = [];
   for (const part of parts) {
-    if (part.includes('.')) break;
-    if (!skip.has(part)) return part;
+    if (part.includes('.')) break; // reached a file
+    if (!skip.has(part)) meaningful.push(part);
+    if (meaningful.length >= 2) break; // 2 levels deep max
   }
-  return parts[0];
+  return meaningful.length > 0 ? meaningful.join('/') : parts[0];
 }
 
 // ── ts-morph import analysis ────────────────────────────────────────
