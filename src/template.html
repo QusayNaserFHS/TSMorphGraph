@@ -798,6 +798,8 @@
           if (sid === node.id || tid === node.id) highlightLinks.add(link);
         });
       }
+      // Force canvas repaint — reassign link color accessor (no-op that triggers re-render)
+      if (typeof Graph !== 'undefined') Graph.linkColor(Graph.linkColor());
     }
 
     // ── Filters ───────────────────────────────────────────────────
@@ -1215,6 +1217,7 @@
       .onNodeHover(node => {
         hoveredNode = node;
         graphContainer.style.cursor = node ? 'pointer' : 'default';
+        if (!selectedNode) updateHighlight(node);
       })
       .onNodeClick(node => {
         if (node.__isCluster) { const cx = node.x, cy = node.y; expandCluster(node.group); Graph.centerAt(cx, cy, 400); return; }
