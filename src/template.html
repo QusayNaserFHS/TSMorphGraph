@@ -1164,11 +1164,25 @@
       .graphData(data)
       .nodeId('id')
       .backgroundColor('#0d1117')
-      .linkColor(link => isViolationLink(link) ? '#f85149' : highlightLinks.has(link) ? '#58a6ff' : 'rgba(88,166,255,0.15)')
-      .linkWidth(link => isViolationLink(link) ? 2.5 : highlightLinks.has(link) ? 2 : 0.8)
+      .linkColor(link => {
+        const viol = isViolationLink(link);
+        const hl = highlightLinks.has(link);
+        if (viol && hl) return '#f85149';
+        if (viol) return 'rgba(248,81,73,0.35)';
+        if (hl) return '#58a6ff';
+        return 'rgba(88,166,255,0.15)';
+      })
+      .linkWidth(link => highlightLinks.has(link) ? 2.5 : isViolationLink(link) ? 1.5 : 0.8)
       .linkDirectionalArrowLength(6)
       .linkDirectionalArrowRelPos(1)
-      .linkDirectionalArrowColor(link => isViolationLink(link) ? '#f85149' : highlightLinks.has(link) ? '#58a6ff' : 'rgba(88,166,255,0.3)')
+      .linkDirectionalArrowColor(link => {
+        const viol = isViolationLink(link);
+        const hl = highlightLinks.has(link);
+        if (viol && hl) return '#f85149';
+        if (viol) return 'rgba(248,81,73,0.4)';
+        if (hl) return '#58a6ff';
+        return 'rgba(88,166,255,0.3)';
+      })
       .linkCurvature(0.15)
       .nodeCanvasObject((node, ctx, globalScale) => {
         const s = STATUS[node.status] || STATUS.modified;
